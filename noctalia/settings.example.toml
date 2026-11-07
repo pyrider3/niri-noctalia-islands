@@ -1,0 +1,191 @@
+# Trimmed Noctalia settings (~/.local/state/noctalia/settings.toml).
+# Wallpaper, location, lock-screen layout and per-user paths are removed on purpose.
+# Merge the parts you want; install.sh does NOT overwrite your own settings.toml.
+
+config_version = 16
+
+[bar.default]
+background_opacity = 0.0
+capsule = true
+center = [ "cyber-ruler" ]
+concave_edge_corners = false
+end = [ "tray", "notifd-bell", "clipboard", "dropover-widget", "airdrop-switch", "status-capsule", "battery", "grok-bot" ]
+margin_ends = 10
+radius = 15
+shadow = false
+start = [ "clock-island", "bar", "notion-now", "active_window", "media-capsule" ]
+
+[bar.default.dead_zone.actions]
+scroll_down = "exec niri msg action focus-column-right"
+scroll_up = "exec niri msg action focus-column-left"
+
+[shell]
+corner_radius_scale = 2.0
+lang = "zh-Hans"
+password_style = "random"
+polkit_agent = true
+
+[shell.animation]
+enabled = true
+speed = 1.1
+
+[shell.panel]
+open_near_click_control_center = true
+
+[shell.screenshot]
+save_to_file = false
+
+[theme]
+builtin = "Noctalia"
+community_palette = "ADW"
+pure_black_dark = true
+shell_mode = "dark"
+source = "community"
+wallpaper_scheme = "m3-rainbow"
+
+[theme.templates]
+builtin_ids = [ "cava", "niri" ]
+
+[osd.kinds]
+bluetooth = false
+brightness = false
+dnd = false
+keyboard_layout = false
+lock_keys = false
+media = false
+power_profile = false
+privacy = false
+volume = false
+wifi = false
+
+[notification]
+enable_daemon = false
+
+[dock]
+concave_edge_corners = false
+enabled = false
+icon_size = 36
+reserve_space = false
+show_dots = true
+
+[control_center.calendar]
+show_events_card = false
+
+[brightness]
+enable_ddcutil = true
+
+[plugin_settings."local/center-hub"]
+style = "ruler"
+
+[plugin_settings."local/clock-island"]
+show_seconds = false
+
+[plugin_settings."local/cyber-ruler"]
+accent_source = "mono"
+events = true
+island = false
+show_windows = false
+size_percent = 120
+theme = "merged"
+tick_width_percent = 200
+width = 280
+
+[plugin_settings."local/notifd-bell"]
+sound_effect = "attention"
+style = "bell"
+
+[plugin_settings."local/status-capsule"]
+icon_style = "line"
+
+[plugin_settings."pyrider3/media-capsule"]
+max_width = 227
+title_scroll = "always"
+
+[widget.active_window]
+enabled = false
+title_scroll = "on_hover"
+
+[widget.audio_visualizer]
+mirrored = false
+show_wave = true
+
+[widget.battery]
+hide_when_plugged = true
+
+[widget.brightness]
+capsule = false
+
+[widget.center-hub]
+enabled = false
+type = "local/center-hub:hub"
+
+[widget.clipboard]
+enabled = false
+
+[widget.clock-island]
+type = "local/clock-island:clock"
+
+[widget.cyber-ruler]
+capsule = false
+type = "local/cyber-ruler:ruler"
+
+[widget.grok-bot]
+capsule = false
+type = "local/grok-bot:face"
+
+[widget.launcher]
+enabled = false
+
+[widget.media]
+hide_when_no_media = true
+show_progress = true
+title_scroll = "on_hover"
+
+[widget.media-capsule]
+audio_spectrum_bands = 29
+capsule_padding = 0
+type = "pyrider3/media-capsule:player"
+
+[widget.network]
+show_label = false
+
+[widget.notifd-bell]
+type = "local/notifd-bell:bell"
+
+[widget.notion-now]
+type = "pyrider3/notion-now:now"
+
+[widget.status-capsule]
+type = "local/status-capsule:capsule"
+
+[widget.tray]
+detached_panel = true
+drawer = true
+pinned = [ "Fcitx" ]
+
+[widget.volume.actions]
+scroll_down = "volume-down 1%"
+scroll_up = "volume-up 1%"
+
+[widget.workspaces]
+pill_scale = 0.65
+scale = 1.2
+show_labels = false
+
+[plugins]
+enabled = [ "local/grok-bot", "pyrider3/notion-now", "pyrider3/media-capsule", "local/cyber-ruler", "local/status-capsule", "local/notifd-bell", "local/clock-island", "local/center-hub" ]
+
+[[plugins.source]]
+kind = "git"
+location = "https://github.com/noctalia-dev/official-plugins"
+name = "official"
+
+[[plugins.source]]
+kind = "git"
+location = "https://github.com/noctalia-dev/community-plugins"
+name = "community"
+
+[[plugins.source]]
+kind = "path"
+location = "__HOME__/.config/noctalia/plugins"
+name = "local"

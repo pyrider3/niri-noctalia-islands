@@ -1,0 +1,47 @@
+id = "local/notifd-bell"
+name = "Notifd Bell"
+version = "0.1.0"
+plugin_api = 43
+author = "local"
+license = "MIT"
+icon = "bell"
+description = "通知铃铛：显示未读数和勿扰状态，点击打开通知中心，右键切换勿扰。"
+tags = ["bar", "notifications"]
+
+[[widget]]
+id = "bell"
+entry = "widget.luau"
+[widget.actions]
+middle = "none"
+
+[[setting]]
+key = "style"
+type = "select"
+label_key = "settings.style"
+default = "card"
+options = [
+  { value = "card", label_key = "settings.style_card" },
+  { value = "frost", label_key = "settings.style_frost" },
+  { value = "island", label_key = "settings.style_island" },
+  { value = "capsule", label_key = "settings.style_capsule" },
+  { value = "bell", label_key = "settings.style_bell" }
+]
+
+[[setting]]
+key = "sound"
+type = "bool"
+label_key = "settings.sound"
+default = true
+
+[[setting]]
+key = "sound_effect"
+type = "select"
+label_key = "settings.sound_effect"
+default = "message"
+options = [
+  { value = "message", label_key = "settings.sound_message" },
+  { value = "message2", label_key = "settings.sound_message2" },
+  { value = "bell", label_key = "settings.sound_bell" },
+  { value = "complete", label_key = "settings.sound_complete" },
+  { value = "attention", label_key = "settings.sound_attention" }
+]

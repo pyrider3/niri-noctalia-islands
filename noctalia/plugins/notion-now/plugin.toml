@@ -1,0 +1,21 @@
+id = "pyrider3/notion-now"
+name = "Notion Now"
+version = "2.3.3"
+plugin_api = 43
+author = "pyrider3"
+license = "MIT"
+icon = "calendar"
+description = "当前日程：合并 Notion 数据库，显示活动与剩余时间。"
+dependencies = ["python3"]
+tags = ["bar", "panel", "productivity", "calendar"]
+
+[[widget]]
+id = "now"
+entry = "widget.luau"
+
+[widget.actions]
+middle = "none"
+
+[[service]]
+id = "switch-notifier"
+entry = "service.luau"

@@ -1,0 +1,59 @@
+id = "pyrider3/media-capsule"
+name = "Media Capsule"
+version = "1.3.1"
+plugin_api = 43
+author = "pyrider3"
+license = "MIT"
+icon = "music"
+description = "播放胶囊：封面、曲名、实时频谱与播放进度。"
+dependencies = ["python3"]
+tags = ["bar", "media"]
+
+[[widget]]
+id = "player"
+entry = "widget.luau"
+[widget.actions]
+middle = "none"
+
+[[widget.setting]]
+key = "audio_spectrum"
+type = "bool"
+label_key = "settings.audio_spectrum"
+default = true
+
+[[widget.setting]]
+key = "audio_spectrum_bands"
+type = "int"
+label_key = "settings.audio_spectrum_bands"
+default = 20
+min = 8
+max = 64
+
+
+[[setting]]
+key = "max_width"
+type = "int"
+label_key = "settings.max_width"
+default = 360
+min = 180
+max = 720
+
+[[setting]]
+key = "title_scroll"
+type = "select"
+label_key = "settings.title_scroll"
+default = "hover"
+options = [
+  { value = "never", label_key = "settings.scroll_never" },
+  { value = "hover", label_key = "settings.scroll_hover" },
+  { value = "always", label_key = "settings.scroll_always" }
+]
+
+[[setting]]
+key = "scroll_speed"
+type = "int"
+label_key = "settings.scroll_speed"
+default = 22
+min = 8
+max = 60
+visible_when = { key = "title_scroll", values = ["hover", "always"] }

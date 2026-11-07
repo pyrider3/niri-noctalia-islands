@@ -1,0 +1,8 @@
+{
+  "settings.animate": "Animate face",
+  "settings.show_name": "Show waiting agent name",
+  "settings.notify_waiting": "Notify when an agent needs you",
+  "settings.hide_missing": "Hide when Grok Bot is not installed",
+  "settings.working_window": "Working state timeout (seconds)",
+  "settings.autostart_bridge": "Start local bridge with plugin"
+}

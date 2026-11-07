@@ -1,0 +1,148 @@
+id = "local/cyber-ruler"
+name = "Cyber Ruler · 赛博刻度尺"
+version = "1.8.0"
+plugin_api = 43
+author = "local"
+license = "MIT"
+icon = "ruler-2"
+description = "Niri 双层工作区与窗口导航：经典赛博 / 透明飞行仪表主题。"
+dependencies = ["python3"]
+tags = ["bar", "workspaces", "niri"]
+
+[[widget]]
+id = "ruler"
+entry = "widget.luau"
+hover_highlight = false
+
+[[setting]]
+key = "theme"
+type = "select"
+label_key = "settings.theme"
+default = "classic"
+options = [
+  { value = "classic", label_key = "settings.theme_classic" },
+  { value = "aviation", label_key = "settings.theme_aviation" },
+  { value = "aviation_spring", label_key = "settings.theme_aviation_spring" },
+  { value = "glass", label_key = "settings.theme_glass" },
+  { value = "pill", label_key = "settings.theme_pill" },
+  { value = "merged", label_key = "settings.theme_merged" },
+  { value = "stars", label_key = "settings.theme_stars" },
+  { value = "pearls", label_key = "settings.theme_pearls" },
+  { value = "mercury", label_key = "settings.theme_mercury" },
+  { value = "barrel", label_key = "settings.theme_barrel" },
+  { value = "neon", label_key = "settings.theme_neon" },
+  { value = "islands", label_key = "settings.theme_islands" },
+  { value = "filmstrip", label_key = "settings.theme_filmstrip" }
+]
+
+[[setting]]
+key = "width"
+type = "int"
+label_key = "settings.width"
+default = 300
+min = 180
+max = 520
+
+[[setting]]
+key = "accent"
+type = "color"
+label_key = "settings.accent"
+default = "#63f5e3"
+visible_when = { key = "theme", values = ["classic"] }
+
+[[setting]]
+key = "animate"
+type = "bool"
+label_key = "settings.animate"
+default = true
+
+[[setting]]
+key = "show_app"
+type = "bool"
+label_key = "settings.show_app"
+default = true
+visible_when = { key = "theme", values = ["classic"] }
+
+[[setting]]
+key = "duration"
+type = "int"
+label_key = "settings.duration"
+default = 320
+min = 120
+max = 800
+
+
+[[setting]]
+key = "show_windows"
+type = "bool"
+label_key = "settings.show_windows"
+default = true
+
+
+[[setting]]
+key = "size_percent"
+type = "int"
+label_key = "settings.size_percent"
+default = 100
+min = 80
+max = 160
+visible_when = { key = "theme", values = ["aviation", "aviation_spring", "glass", "pill", "merged", "stars", "pearls", "mercury", "barrel", "neon", "islands", "filmstrip"] }
+
+[[setting]]
+key = "tick_width_percent"
+type = "int"
+label_key = "settings.tick_width_percent"
+default = 125
+min = 50
+max = 250
+visible_when = { key = "theme", values = ["aviation", "aviation_spring", "glass", "pill", "merged", "stars", "pearls", "mercury", "barrel", "neon"] }
+
+[[setting]]
+key = "dot_size_percent"
+type = "int"
+label_key = "settings.dot_size_percent"
+default = 100
+min = 50
+max = 200
+visible_when = { key = "theme", values = ["aviation", "aviation_spring", "glass", "pill", "merged", "stars", "pearls", "mercury", "barrel", "neon"] }
+
+[[setting]]
+key = "accent_source"
+type = "select"
+label_key = "settings.accent_source"
+default = "default"
+options = [
+  { value = "default", label_key = "settings.accent_default" },
+  { value = "wallpaper", label_key = "settings.accent_wallpaper" },
+  { value = "custom", label_key = "settings.accent_custom_option" },
+  { value = "sakura", label_key = "settings.accent_sakura" },
+  { value = "sunset", label_key = "settings.accent_sunset" },
+  { value = "amber", label_key = "settings.accent_amber" },
+  { value = "mint", label_key = "settings.accent_mint" },
+  { value = "emerald", label_key = "settings.accent_emerald" },
+  { value = "violet", label_key = "settings.accent_violet" },
+  { value = "ice", label_key = "settings.accent_ice" },
+  { value = "crimson", label_key = "settings.accent_crimson" },
+  { value = "mono", label_key = "settings.accent_mono" }
+]
+visible_when = { key = "theme", values = ["aviation_spring", "glass", "pill", "merged", "stars", "pearls", "mercury", "barrel", "neon"] }
+
+[[setting]]
+key = "accent_custom"
+type = "color"
+label_key = "settings.accent_custom"
+default = "#ff8fb8"
+visible_when = { key = "accent_source", values = ["custom"] }
+
+[[setting]]
+key = "events"
+type = "bool"
+label_key = "settings.events"
+default = false
+
+[[setting]]
+key = "island"
+type = "bool"
+label_key = "settings.island"
+default = false
+visible_when = { key = "theme", values = ["merged"] }

@@ -1,0 +1,5 @@
+// Managed by scripts/toggle-global-window-mode.py.
+window-rule {
+    open-floating false
+    background-effect { xray true; }
+}

@@ -1,0 +1,17 @@
+{
+  "settings": {
+    "style": "通知样式",
+    "style_card": "深色卡片（经典）",
+    "style_frost": "亮色磨砂卡",
+    "style_island": "灵动岛",
+    "style_capsule": "栏内胶囊",
+    "style_bell": "铃铛摇出",
+    "sound": "通知提示音",
+    "sound_effect": "提示音效",
+    "sound_message": "轻快",
+    "sound_message2": "柔和",
+    "sound_bell": "铃声",
+    "sound_complete": "完成",
+    "sound_attention": "提醒"
+  }
+}

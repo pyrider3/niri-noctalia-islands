@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+*.bak*
+*.orig
+backups/
+*.sock
+*.lock
+error.txt
+we.json
+niri-appearance.json

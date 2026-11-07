@@ -1,0 +1,2 @@
+// Managed by ~/.config/notifd/notifd-ctl.sh
+spawn-at-startup "python3" "__HOME__/.config/notifd/notifd.py"

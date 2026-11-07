@@ -1,0 +1,76 @@
+id = "local/grok-bot"
+name = "Grok Bot"
+version = "1.0.0"
+plugin_api = 32
+author = "Local adaptation; original by Hector Marquez"
+license = "MIT"
+icon = "robot"
+description = "Grok Bot 动态表情、代理状态、未读消息与待处理提醒。"
+tags = ["bar", "panel", "ai", "niri"]
+
+[[setting]]
+key = "autostart_bridge"
+type = "bool"
+label_key = "settings.autostart_bridge"
+default = true
+
+[[setting]]
+key = "animate"
+type = "bool"
+label_key = "settings.animate"
+default = true
+
+[[setting]]
+key = "show_name"
+type = "bool"
+label_key = "settings.show_name"
+default = true
+
+[[setting]]
+key = "notify_waiting"
+type = "bool"
+label_key = "settings.notify_waiting"
+default = true
+
+[[setting]]
+key = "hide_missing"
+type = "bool"
+label_key = "settings.hide_missing"
+default = true
+
+[[setting]]
+key = "working_window"
+type = "int"
+label_key = "settings.working_window"
+default = 12
+min = 3
+max = 120
+
+[[widget]]
+id = "face"
+entry = "widget.luau"
+[widget.actions]
+middle = "none"
+
+[[panel]]
+id = "agents"
+entry = "panel.luau"
+width = 440
+height = 560
+placement = "attached"
+open_near_click = true
+keyboard_focus = "on_demand"
+capture_keys = ["j", "k", "Return", "o", "r", "s"]
+
+[[service]]
+id = "monitor"
+entry = "service.luau"
+
+[[panel]]
+id = "squad"
+entry = "squad.luau"
+width = 560
+height = 890
+placement = "attached"
+open_near_click = true
+keyboard_focus = "on_demand"

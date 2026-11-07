@@ -1,0 +1,12 @@
+{
+  "settings": {
+    "max_width": "胶囊最大宽度（px）",
+    "title_scroll": "长标题滚动",
+    "scroll_never": "不滚动（显示省略号）",
+    "scroll_hover": "鼠标悬停时滚动",
+    "scroll_always": "始终滚动",
+    "scroll_speed": "滚动速度（px/秒）",
+    "audio_spectrum": "音频可视化",
+    "audio_spectrum_bands": "频谱精细度"
+  }
+}

@@ -1,0 +1,234 @@
+#!/usr/bin/env python3
+"""Animated notification bell for the bar (cairo, streamed to the bar widget)."""
+import json
+import math
+import os
+import time
+from pathlib import Path
+
+import cairo
+
+STATE = Path(os.environ.get('XDG_STATE_HOME', str(Path.home() / '.local/state'))) / 'notifd-bell'
+NOTIFD_STATE = Path.home() / '.local/state/notifd/state.json'
+THEME = Path.home() / '.local/state/status-capsule/input.json'
+W = H = 28
+SCALE = 2
+TAU = 2 * math.pi
+
+
+def read_json(path):
+    try:
+        return json.loads(path.read_text())
+    except (OSError, ValueError):
+        return {}
+
+
+def save_json(path, value):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix('.tmp')
+    tmp.write_text(json.dumps(value))
+    tmp.replace(path)
+
+
+def rgb(h, fb):
+    try:
+        return tuple(int(h[i:i + 2], 16) / 255 for i in (1, 3, 5))
+    except (TypeError, ValueError):
+        return fb
+
+
+class Spring:
+    def __init__(self, x=0.0, omega=30.0, zeta=.45):
+        self.x = self.t = float(x)
+        self.v = 0.0
+        self.o, self.z = omega, zeta
+
+    def step(self, dt):
+        dt = min(.05, max(0.0, dt))
+        n = int(dt / .004) + 1
+        h = dt / n
+        for _ in range(n):
+            self.v += (-2 * self.z * self.o * self.v - self.o * self.o * (self.x - self.t)) * h
+            self.x += self.v * h
+        if abs(self.x - self.t) < .005 and abs(self.v) < .02:
+            self.x, self.v = self.t, 0.0
+
+    @property
+    def moving(self):
+        return self.x != self.t or self.v != 0.0
+
+
+class Bell:
+    def __init__(self):
+        self.unread = 0
+        self.count = 0
+        self.dnd = False
+        self.prev_unread = 0
+        self.mtime = None
+        self.theme = {}
+        self.theme_t = 0.0
+        self.ring_at = -10.0          # time of the last ring
+        self.next_reminder = time.monotonic() + 8
+        self.pop = Spring(0, omega=34, zeta=.42)    # badge pop
+        self.pop.t = 0
+        self.badge_on = Spring(0, omega=28, zeta=.55)
+        self.dnd_mix = Spring(0, omega=26, zeta=1.0)
+        self.t = 0.0
+        self.last_status = 0.0
+
+    def read(self):
+        try:
+            mt = NOTIFD_STATE.stat().st_mtime_ns
+        except OSError:
+            return
+        if mt == self.mtime:
+            return
+        self.mtime = mt
+        s = read_json(NOTIFD_STATE)
+        self.count = int(s.get('count', 0))
+        self.dnd = bool(s.get('dnd', False))
+        unread = int(s.get('unread', 0))
+        now = time.monotonic()
+        if unread > self.unread and not self.dnd:
+            self.ring_at = now                    # new notification: ring
+            self.pop.x = 1.6                      # badge overshoots, then settles
+            self.pop.t = 1.0
+        self.unread = unread
+
+    def step(self, delta, now):
+        self.read()
+        mono = time.monotonic()
+        if mono - self.theme_t > 2:
+            self.theme_t = mono
+            self.theme = read_json(THEME)
+        self.t += delta
+        if self.unread > 0 and not self.dnd and mono > self.next_reminder:
+            self.ring_at = mono                   # gentle reminder while unread
+            self.next_reminder = mono + 9
+        self.badge_on.t = 1.0 if (self.unread > 0 and not self.dnd) else 0.0
+        self.dnd_mix.t = 1.0 if self.dnd else 0.0
+        for sp in (self.pop, self.badge_on, self.dnd_mix):
+            sp.step(delta)
+        ringing = mono - self.ring_at < 1.6
+        return ringing or self.pop.moving or self.badge_on.moving or self.dnd_mix.moving or self.dnd
+
+    def render(self):
+        surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, W * SCALE, H * SCALE)
+        c = cairo.Context(surf)
+        c.scale(SCALE, SCALE)
+        th = self.theme
+        text = rgb(th.get('text'), (.95, .95, .95))
+        accent = rgb(th.get('accent'), (.21, .52, .89))
+        danger = (1.0, .38, .4)
+        mono = time.monotonic()
+        age = mono - self.ring_at
+        dm = max(0.0, min(1.0, self.dnd_mix.x))
+        if dm < .98:
+            c.save()
+            c.translate(W / 2, H / 2 + .5)
+            c.set_source_rgba(*text, 1 - dm)
+            # swing: damped oscillation after a ring, tiny idle sway otherwise
+            rot = math.sin(age * 26) * .42 * math.exp(-age * 3.0) if age < 1.6 else math.sin(self.t * 1.3) * .015
+            c.save()
+            c.translate(0, -8)
+            c.rotate(rot)
+            c.translate(0, 8)
+            self.bell(c, filled=self.unread > 0, accent=accent, text=text, swing=rot)
+            c.restore()
+            c.restore()
+        if dm > .02:
+            self.moon(c, text, accent, dm)
+        b = max(0.0, self.badge_on.x)
+        if b > .02:
+            s = max(0.0, b) * (1 + .0 * self.pop.x)
+            pop = self.pop.x if self.pop.x > 0 else 1.0
+            r = 6.1 * min(1.0, b) * (pop if pop > 0 else 1.0)
+            bx, by = 20.2, 7.8
+            c.set_source_rgba(0, 0, 0, .25)
+            c.arc(bx, by + .8, r + .6, 0, TAU)
+            c.fill()
+            c.set_source_rgb(*danger)
+            c.arc(bx, by, r, 0, TAU)
+            c.fill()
+            c.select_font_face('Noto Sans CJK SC', cairo.FONT_SLANT_NORMAL, cairo.FONT_WEIGHT_BOLD)
+            label = str(self.unread) if self.unread < 10 else '9+'
+            c.set_font_size(8.2 if self.unread < 10 else 6.4)
+            ext = c.text_extents(label)
+            c.set_source_rgb(1, 1, 1)
+            c.move_to(bx - ext.x_advance / 2, by + ext.height / 2 - .2)
+            c.show_text(label)
+        surf.flush()
+        return surf
+
+    def bell(self, c, filled, accent, text, swing):
+        # dome + flared rim
+        def path():
+            c.move_to(-7.2, 5.4)
+            c.curve_to(-5.2, 4.0, -4.4, 1.2, -4.4, -1.8)
+            c.curve_to(-4.4, -5.4, -2.2, -7.2, 0, -7.2)
+            c.curve_to(2.2, -7.2, 4.4, -5.4, 4.4, -1.8)
+            c.curve_to(4.4, 1.2, 5.2, 4.0, 7.2, 5.4)
+            c.close_path()
+        c.set_line_width(1.6)
+        c.set_line_join(cairo.LINE_JOIN_ROUND)
+        c.set_line_cap(cairo.LINE_CAP_ROUND)
+        path()
+        if filled:
+            c.set_source_rgb(*accent)
+            c.fill_preserve()
+            c.set_source_rgb(*accent)
+            c.stroke()
+        else:
+            c.set_source_rgb(*text)
+            c.stroke()
+        # knob on top
+        c.arc(0, -8.4, 1.0, 0, TAU)
+        c.set_source_rgb(*(accent if filled else text))
+        c.fill()
+        # clapper swings the opposite way
+        c.arc(-swing * 7.5, 7.4, 1.8, 0, TAU)
+        c.set_source_rgb(*(accent if filled else text))
+        c.fill()
+
+    def moon(self, c, text, accent, dm):
+        t = time.monotonic()
+        c.save()
+        c.translate(W / 2 - .5, H / 2 + .5)
+        c.scale(.85 + .15 * dm, .85 + .15 * dm)
+        c.set_source_rgba(*text, .95 * dm)
+        c.arc(0, 0, 7, 0, TAU)
+        c.fill()
+        c.set_operator(cairo.OPERATOR_CLEAR)
+        c.arc(3.6, -2.6, 6.2, 0, TAU)
+        c.fill()
+        c.set_operator(cairo.OPERATOR_OVER)
+        for i, (sx, sy, ph) in enumerate(((7.5, -6.5, 0), (9.5, 2.5, 1.9), (4.5, 8.5, 3.7))):
+            s = (math.sin(t * 2.4 + ph) + 1) / 2
+            r = .8 + 2.0 * s
+            c.save()
+            c.translate(sx, sy)
+            c.rotate(t * .7 + i)
+            c.set_source_rgba(*accent, (.25 + .75 * s) * dm)
+            c.move_to(0, -r); c.line_to(r * .3, -r * .3); c.line_to(r, 0); c.line_to(r * .3, r * .3)
+            c.line_to(0, r); c.line_to(-r * .3, r * .3); c.line_to(-r, 0); c.line_to(-r * .3, -r * .3)
+            c.close_path()
+            c.fill()
+            c.restore()
+        c.restore()
+
+    def paint(self):
+        surf = self.render()
+        raw = memoryview(surf.get_data()).cast('B')
+        out = bytearray(raw)
+        out[0::4] = raw[2::4]
+        out[2::4] = raw[0::4]
+        now = time.time()
+        if now - self.last_status > 1:
+            self.last_status = now
+            save_json(STATE / 'status.json', dict(updated=now))
+        return W, bytes(out)
+
+
+if __name__ == '__main__':
+    from stream_server import serve
+    serve(Bell, STATE, 'canvas', W, H, headless=True)

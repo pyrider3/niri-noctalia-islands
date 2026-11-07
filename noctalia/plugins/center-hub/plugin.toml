@@ -1,0 +1,25 @@
+id = "local/center-hub"
+name = "Center Hub"
+version = "0.1.0"
+plugin_api = 43
+author = "local"
+license = "MIT"
+icon = "layout-columns"
+description = "中间枢纽：niri 工作区与窗口列地图；切换工作区时临时变形提示。"
+tags = ["bar", "niri"]
+
+[[widget]]
+id = "hub"
+entry = "widget.luau"
+[widget.actions]
+middle = "none"
+
+[[setting]]
+key = "style"
+type = "select"
+label_key = "settings.style"
+default = "columns"
+options = [
+  { value = "columns", label_key = "settings.style_columns" },
+  { value = "ruler", label_key = "settings.style_ruler" }
+]

@@ -1,0 +1,26 @@
+id = "local/status-capsule"
+name = "Status Capsule"
+version = "0.1.0"
+plugin_api = 43
+author = "local"
+license = "MIT"
+icon = "adjustments"
+description = "状态胶囊：蓝牙、Wi-Fi、音量、亮度，悬停展开，滚轮调节。"
+dependencies = ["python3"]
+tags = ["bar", "system"]
+
+[[widget]]
+id = "capsule"
+entry = "widget.luau"
+[widget.actions]
+middle = "none"
+
+[[setting]]
+key = "icon_style"
+type = "select"
+label_key = "settings.icon_style"
+default = "line"
+options = [
+  { value = "line", label_key = "settings.style_line" },
+  { value = "cartoon", label_key = "settings.style_cartoon" }
+]

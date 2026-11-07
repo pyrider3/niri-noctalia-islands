@@ -1,0 +1,8 @@
+// Aesthetic layer: blur tuning + soft shadows. Managed via scripts/aesthetic.sh
+// Remove this include from config.kdl (or run `aesthetic.sh off`) to roll back.
+blur {
+    passes 4
+    offset 5.0
+    noise 0.015
+    saturation 1.25
+}

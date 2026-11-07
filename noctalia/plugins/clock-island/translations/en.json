@@ -1,0 +1,9 @@
+{
+  "settings": {
+    "show_seconds": "Show seconds",
+    "pomo_focus": "Pomodoro: focus (minutes)",
+    "pomo_short": "Pomodoro: short break (minutes)",
+    "pomo_long": "Pomodoro: long break (minutes)",
+    "pomo_auto": "Pomodoro: start the next phase automatically"
+  }
+}

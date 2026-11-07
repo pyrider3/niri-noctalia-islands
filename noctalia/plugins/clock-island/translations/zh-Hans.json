@@ -1,0 +1,9 @@
+{
+  "settings": {
+    "show_seconds": "显示秒",
+    "pomo_focus": "番茄钟：专注时长（分钟）",
+    "pomo_short": "番茄钟：短休息（分钟）",
+    "pomo_long": "番茄钟：长休息（分钟）",
+    "pomo_auto": "番茄钟：阶段结束后自动开始下一阶段"
+  }
+}

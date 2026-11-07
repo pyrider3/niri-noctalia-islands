@@ -1,0 +1,4 @@
+// Animation presets from other projects are not bundled (see README).
+// Drop a preset here, e.g. from https://github.com/XansiVA/nirimation, to get niri animation tuning.
+animations {
+}

@@ -1,0 +1,8 @@
+{
+  "settings.animate": "机器人表情动画",
+  "settings.show_name": "在状态栏显示等待你的代理名称",
+  "settings.notify_waiting": "代理需要你处理时发送通知",
+  "settings.hide_missing": "未安装 Grok Bot 时隐藏",
+  "settings.working_window": "停止输出多久后视为空闲（秒）",
+  "settings.autostart_bridge": "插件启动时自动启动本地桥接"
+}

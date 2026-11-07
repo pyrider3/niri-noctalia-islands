@@ -1,0 +1,12 @@
+{
+  "settings": {
+    "max_width": "Maximum capsule width (px)",
+    "title_scroll": "Long title scrolling",
+    "scroll_never": "Never (ellipsis)",
+    "scroll_hover": "On hover",
+    "scroll_always": "Always",
+    "scroll_speed": "Scroll speed (px/s)",
+    "audio_spectrum": "Audio visualization",
+    "audio_spectrum_bands": "Spectrum bands"
+  }
+}

@@ -1,0 +1,51 @@
+id = "local/clock-island"
+name = "Clock Island"
+version = "0.1.0"
+plugin_api = 43
+author = "local"
+license = "MIT"
+icon = "clock"
+description = "可爱的动态时钟：数字翻滚、昼夜小表情；点击展开灵动岛日历。"
+tags = ["bar", "clock", "calendar"]
+
+[[widget]]
+id = "clock"
+entry = "widget.luau"
+[widget.actions]
+middle = "none"
+
+[[setting]]
+key = "show_seconds"
+type = "bool"
+label_key = "settings.show_seconds"
+default = false
+
+[[setting]]
+key = "pomo_focus"
+type = "int"
+label_key = "settings.pomo_focus"
+default = 25
+min = 1
+max = 180
+
+[[setting]]
+key = "pomo_short"
+type = "int"
+label_key = "settings.pomo_short"
+default = 5
+min = 1
+max = 60
+
+[[setting]]
+key = "pomo_long"
+type = "int"
+label_key = "settings.pomo_long"
+default = 15
+min = 1
+max = 90
+
+[[setting]]
+key = "pomo_auto"
+type = "bool"
+label_key = "settings.pomo_auto"
+default = true

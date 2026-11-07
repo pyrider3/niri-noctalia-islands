@@ -1,0 +1,17 @@
+{
+  "settings": {
+    "style": "Notification style",
+    "style_card": "Dark card (classic)",
+    "style_frost": "Frosted light card",
+    "style_island": "Dynamic island",
+    "style_capsule": "In-bar capsule",
+    "style_bell": "Shaken out of the bell",
+    "sound": "Notification sound",
+    "sound_effect": "Sound effect",
+    "sound_message": "Bright",
+    "sound_message2": "Soft",
+    "sound_bell": "Bell",
+    "sound_complete": "Complete",
+    "sound_attention": "Attention"
+  }
+}
