@@ -1,0 +1,16 @@
+id = "local/tray-island"
+name = "Tray Island"
+version = "0.1.0"
+plugin_api = 43
+author = "local"
+license = "MIT"
+icon = "chevron-down"
+description = "托盘岛：栏上的 ∨ 与输入法指示；点 ∨ 从胶囊里长出托盘面板。"
+dependencies = ["python3"]
+tags = ["bar", "tray"]
+
+[[widget]]
+id = "tray"
+entry = "widget.luau"
+[widget.actions]
+middle = "none"

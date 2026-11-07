@@ -9,7 +9,7 @@ background_opacity = 0.0
 capsule = true
 center = [ "cyber-ruler" ]
 concave_edge_corners = false
-end = [ "tray", "notifd-bell", "clipboard", "dropover-widget", "airdrop-switch", "status-capsule", "battery", "grok-bot" ]
+end = [ "tray-island", "notifd-bell", "clipboard", "dropover-widget", "airdrop-switch", "status-capsule", "battery", "grok-bot" ]
 margin_ends = 10
 radius = 15
 shadow = false
@@ -84,6 +84,7 @@ show_seconds = false
 accent_source = "mono"
 events = true
 island = false
+panel = true
 show_windows = false
 size_percent = 120
 theme = "merged"
@@ -163,6 +164,9 @@ detached_panel = true
 drawer = true
 pinned = [ "Fcitx" ]
 
+[widget.tray-island]
+type = "local/tray-island:tray"
+
 [widget.volume.actions]
 scroll_down = "volume-down 1%"
 scroll_up = "volume-up 1%"
@@ -173,7 +177,7 @@ scale = 1.2
 show_labels = false
 
 [plugins]
-enabled = [ "local/grok-bot", "pyrider3/notion-now", "pyrider3/media-capsule", "local/cyber-ruler", "local/status-capsule", "local/notifd-bell", "local/clock-island", "local/center-hub" ]
+enabled = [ "local/tray-island", "local/grok-bot", "pyrider3/notion-now", "pyrider3/media-capsule", "local/cyber-ruler", "local/status-capsule", "local/notifd-bell", "local/clock-island", "local/center-hub" ]
 
 [[plugins.source]]
 kind = "git"

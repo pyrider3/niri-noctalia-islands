@@ -141,6 +141,7 @@ class App:
         self.cur = next((i for i, f in enumerate(self.flat) if f[0] == want), 0)
         self.prev_cur = None
         self.pages = {}
+        self._start_scroll = float(os.environ.get('DS_SCROLL', '0') or 0)
         self.page_t = Spring(1, omega=18, zeta=.9)
         self.hl = Spring(self.cur, omega=22, zeta=.75)
         self.hover_side = None
@@ -208,11 +209,26 @@ class App:
         keys.connect('key-pressed', self._on_key)
         keys.set_propagation_phase(Gtk.PropagationPhase.CAPTURE)
         win.add_controller(keys)
-        win.set_child(da)
+        overlay = Gtk.Overlay()
+        overlay.set_child(da)
+        entry = Gtk.Entry()
+        entry.add_css_class('ds-entry')
+        entry.set_halign(Gtk.Align.START)
+        entry.set_valign(Gtk.Align.START)
+        entry.set_visible(False)
+        entry.connect('activate', self._entry_commit)
+        overlay.add_overlay(entry)
+        self.entry, self.entry_row = entry, None
+        self.ui.edit_cb = self.open_entry
+        win.set_child(overlay)
         css = Gtk.CssProvider()
-        css.load_from_string('window.ds-win { background: transparent; } window.ds-catcher { background: rgba(0,0,0,0.01); }')
+        css.load_from_string('window.ds-win { background: transparent; } window.ds-catcher { background: rgba(0,0,0,0.01); } entry.ds-entry { background: rgba(255,255,255,0.12); color: #fff; border: none; border-radius: 12px; padding: 0 12px; font-size: 14px; min-height: 0; box-shadow: none; outline: none; }')
         Gtk.StyleContext.add_provider_for_display(Gdk.Display.get_default(), css, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.win, self.da = win, da
+        if self._start_scroll:
+            pg0 = self.page(self.cur)
+            pg0.target = self._start_scroll
+            pg0.scroll.snap(self._start_scroll)
         THEME.refresh(force=True)
         self.catcher.present()
         self.win.present()
@@ -288,6 +304,7 @@ class App:
         busy = False
         sps = [self.open_sp, self.page_t, self.hl, self.toast_sp]
         pg = self.page(self.cur)
+        pg.target = max(0.0, min(pg.target, max(0.0, pg.height() - (VIEW_BOT - VIEW_TOP))))
         pg.scroll.t = pg.target
         sps.append(pg.scroll)
         for r in pg.rows():
@@ -504,11 +521,39 @@ class App:
                 return
         for row, kind, zx, zy, zw, zh in reversed(self.ui.zones):
             if zx <= px <= zx + zw and zy <= py <= zy + zh and VIEW_TOP <= py <= VIEW_BOT:
+                self.ui.last_zone = (zx, zy, zw, zh)
                 row.click(self.ui, kind, px - zx, py - zy)
                 break
         self.start_frames()
 
+    def open_entry(self, row, rect):
+        zx, zy, zw, zh = rect
+        self.entry_row = row
+        self.entry.set_text(row.value)
+        self.entry.set_placeholder_text(row.ph)
+        self.entry.set_margin_start(int(PAD_WIN + zx))
+        self.entry.set_margin_top(int(PAD_WIN + zy))
+        self.entry.set_size_request(int(zw), int(zh))
+        self.entry.set_visible(True)
+        self.entry.grab_focus()
+
+    def close_entry(self):
+        if self.entry.get_visible():
+            self.entry.set_visible(False)
+        self.entry_row = None
+
+    def _entry_commit(self, entry):
+        row = self.entry_row
+        text = entry.get_text().strip()
+        self.close_entry()
+        if row is not None and text != row.value:
+            old = row.value
+            row.value = text
+            self.apply(row.title, row.set_, text, lambda: old, lambda v, r=row: setattr(r, 'value', v))
+        self.start_frames()
+
     def select(self, i):
+        self.close_entry()
         if i == self.cur:
             return
         self.prev_cur = self.cur
@@ -516,6 +561,7 @@ class App:
         self.page_t.x, self.page_t.v, self.page_t.t = 0.0, 0.0, 1.0
 
     def _on_scroll(self, ctl, dx, dy):
+        self.close_entry()
         pg = self.page(self.cur)
         limit = max(0.0, pg.height() - (VIEW_BOT - VIEW_TOP))
         pg.target = max(0.0, min(limit, pg.target + dy * 70))
@@ -524,6 +570,11 @@ class App:
 
     def _on_key(self, ctl, keyval, keycode, state):
         name = Gdk.keyval_name(keyval)
+        if self.entry.get_visible():
+            if name == 'Escape':
+                self.close_entry()
+                return True
+            return False            # typing goes to the entry
         if name == 'Escape':
             self.close()
         elif name in ('Down', 'Tab'):

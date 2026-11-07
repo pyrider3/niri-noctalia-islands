@@ -14,10 +14,11 @@ A set of black "dynamic island" style components for **niri + Noctalia**: notifi
 | `notifd/` | 自己的通知守护进程（D-Bus `org.freedesktop.Notifications`）：5 种样式（深色卡片、亮色磨砂、灵动岛、栏内胶囊、铃铛摇出）、提示音、历史、勿扰 |
 | `noctalia/plugins/notifd-bell` | 栏上的通知铃铛，未读数、勿扰，通知从铃铛里摇出来 |
 | `noctalia/plugins/clock-island` | 数字翻滚的时钟 + 天气图标，点开是日历岛，带计时器 / 番茄钟 / 秒表 |
-| `noctalia/plugins/notion-now` | 当前日程：合并 Notion 数据库，时间轴里直接看到事件，开始前提醒横幅 |
+| `noctalia/plugins/notion-now` | 当前日程：合并 Notion 数据库，时间轴里直接看到事件，开始前提醒横幅；同步只读取前后各两天，请求失败会自动重试 |
 | `noctalia/plugins/media-capsule` | 播放胶囊 + 播放器岛（封面、频谱、进度） |
 | `noctalia/plugins/status-capsule` | 蓝牙 / Wi-Fi / 音量 / 亮度四页的状态岛，长列表可滚动 |
-| `noctalia/plugins/cyber-ruler` | 赛博刻度尺（工作区与窗口），加了"黑色灵动岛模式"和事件提示：勿扰、麦克风、输入法、切歌等从胶囊里长出黑岛 |
+| `noctalia/plugins/cyber-ruler` | 赛博刻度尺（工作区与窗口）。合并刻度主题下：事件提示（勿扰、麦克风、输入法、切歌等）从当前窗口胶囊里长出黑岛，连续事件之间有过渡；单击当前窗口胶囊展开「所有工作区与窗口」总览面板，可点击跳转，也能对当前窗口做浮动 / 全屏 / 移动 / 关闭；可选「黑色灵动岛模式」 |
+| `noctalia/plugins/tray-island` | 托盘岛：栏上 `▾ 中`（和 Noctalia 自带托盘同样大小），点 `▾` 从箭头里长出托盘面板；左键激活、右键在岛里显示应用自己的菜单（可滚动），`中` 是自己画的输入法指示 |
 | `noctalia/plugins/center-hub` | 早期的中间枢纽实验，已被 cyber-ruler 的事件提示取代，留作参考 |
 | `noctalia/plugins/grok-bot` | Grok Bot 面板的改版（原作者见下） |
 | `desk-settings/` | 同风格的设置应用：壁纸、Wallpaper Engine、niri 外观、栏与 Noctalia、各组件设置，改动可撤销 |
@@ -57,7 +58,9 @@ cd niri-noctalia-islands
 - 这是个人环境：缩放 1.75、165 Hz 屏幕、中文界面上调出来的。别的分辨率和缩放比例下，岛的位置靠"栏上图标颜色标记"实时测量，大体能跟上，但没有大范围测试。
 - Noctalia 不会自动读取外部对 `settings.toml` 的改动，之后任何一次 `config-set` 会用它内存里的旧值覆盖。直接改文件后请执行 `noctalia msg config-reload`。
 - 事件提示要把对应的 Noctalia OSD 关掉才不会重复（`osd.kinds`：`media`、`privacy`、`keyboard_layout` 等）。设置应用的"提示弹窗"页可以改。
-- 刻度尺的"黑色灵动岛模式"和从胶囊里长出提示，目前只支持 `merged`（合并刻度）主题。
+- 刻度尺的事件提示、总览面板和"黑色灵动岛模式"，目前只支持 `merged`（合并刻度）主题。
+- 托盘岛靠识别栏上图标里一块"和图标同色、只差 1/255"的区域来定位，并且取代 Noctalia 自带托盘；想换回去运行 `noctalia/plugins/tray-island/tray-ctl.sh off`。
+- Notion 日程只同步今天前后各两天；开始日期更早、跨度很长的事件不会显示。
 - Notion 日程需要你自己的 Notion 集成密钥，存放在你本机的状态目录，**不在本仓库里**。
 - 没有放别人的东西：niri 动画预设（如 nirimation、iNiR）请自行取用，放进 `~/.config/niri/animation-presets/` 后设置应用的"动画预设"会自动列出。
 

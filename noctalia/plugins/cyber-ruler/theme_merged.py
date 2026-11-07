@@ -6,8 +6,10 @@ spring motion so the focused window always rests under the fixed index.
 """
 import math, cairo
 from heading_spring import HeadingTheme as SpringHeadingTheme, KineticMotion, Motion
-import time
+import json, os, time
+from pathlib import Path
 from island_feed import Feed
+from events_core import Spring as EvSpring
 from theme_kit import DEFAULT, WHITE, GRAY, ORANGE, mix, smooth, fill_capsule, capsule, glow, soft_glow, label, text_width
 
 SMALL, FULL = 4., 7.          # capsule width of a window in an inactive / active workspace
@@ -20,6 +22,7 @@ class MergedTheme(SpringHeadingTheme):
         self.focus = KineticMotion(); self.expand = {}; self.items = []; self.item_x = []
         self.focus_index = 0; self.total = 0
         self.feed = None; self.ev = 0.; self.ev_v = 0.; self.ev_t = None; self.ev_msg = None
+        self.ev_prev = None; self.ev_xf = EvSpring(1.0, omega=24, zeta=.9); self.ev_wsp = None
     def accent_color(self, ruler):
         return ruler.accent_rgb(DEFAULT)
 
@@ -61,7 +64,15 @@ class MergedTheme(SpringHeadingTheme):
             self.feed = Feed()
         tr = self.feed.poll() if (on and self.feed) else None
         if tr:
-            self.ev_msg = tr
+            if tr is not self.ev_msg:
+                # a new message while the island is showing one: morph between them instead of swapping
+                if self.ev_msg is not None and self.ev > .25:
+                    self.ev_prev = self.ev_msg
+                    self.ev_xf.x, self.ev_xf.v, self.ev_xf.t = 0.0, 0.0, 1.0
+                else:
+                    self.ev_prev = None
+                    self.ev_wsp = None
+                self.ev_msg = tr
         self.ev_target = 1. if tr else 0.
 
     def advance_event(self, now):
@@ -74,14 +85,19 @@ class MergedTheme(SpringHeadingTheme):
         for _ in range(n):
             self.ev_v += ((target - self.ev) * k - self.ev_v * d) * h
             self.ev += self.ev_v * h
+        self.ev_xf.step(dt)
+        if not self.ev_xf.moving:
+            self.ev_prev = None
+        if self.ev_wsp is not None:
+            self.ev_wsp.step(dt)
         if not target and abs(self.ev) < .002 and abs(self.ev_v) < .01:
-            self.ev = 0.; self.ev_v = 0.; self.ev_msg = None
+            self.ev = 0.; self.ev_v = 0.; self.ev_msg = None; self.ev_prev = None; self.ev_wsp = None
 
     def event_active(self):
         return self.ev_msg is not None or abs(self.ev) > .002
 
     def moving(self, now):
-        return (super().moving(now) or self.focus.moving(now) or self.event_active()
+        return (super().moving(now) or self.focus.moving(now) or self.event_active() or self.ev_prev is not None
                 or any(m.moving(now) for m in self.expand.values()))
 
     # ---- geometry ----------------------------------------------------------------------------
@@ -105,6 +121,17 @@ class MergedTheme(SpringHeadingTheme):
         shift = ruler.width/2-focus_x
         return [v+shift for v in xs], widths, pos
 
+    def toggle_panel(self):
+        """Ask the panel process (ruler_panel.py) to open or close."""
+        p = Path.home() / '.local/state/cyber-ruler'
+        try:
+            p.mkdir(parents=True, exist_ok=True)
+            tmp = p / 'panel-cmd.tmp'
+            tmp.write_text(json.dumps({'cmd': 'toggle', 'seq': int(time.time() * 1000)}))
+            os.replace(tmp, p / 'panel-cmd.json')
+        except OSError:
+            pass
+
     def hit_item(self, normalized, width):
         if not self.item_x: return None
         x = max(0., min(1., normalized))*width
@@ -118,6 +145,9 @@ class MergedTheme(SpringHeadingTheme):
             it = self.items[k]
             if it['window'] is None:
                 return {'Action': {'FocusWorkspace': {'reference': {'Id': it['ws']}}}}
+            if k == self.focus_index and getattr(ruler, 'panel', False):
+                self.toggle_panel()
+                return None
             if k == self.focus_index and it['members'] > 1:
                 ws = next(w for w in ruler.workspaces if w['id'] == it['ws'])
                 members = ws['columns'][it['column']]['windows']
@@ -193,23 +223,33 @@ class MergedTheme(SpringHeadingTheme):
         if not ruler.connected: label(c, '!', width-9, 20, 8, ORANGE, .85)
         return surface
 
+    def _ev_text(self, c, ruler, tr):
+        """The message trimmed to fit, and its drawn width."""
+        self.feed.font(c, 10, True)
+        text = tr.get('label', '')
+        room = ruler.width - 16. - 16 - 10 - 7 - 16
+        while len(text) > 2 and c.text_extents(text).x_advance > room:
+            text = text[:-2] + '…' if not text.endswith('…') else text[:-2] + '…'
+        return text, c.text_extents(text).x_advance
+
     def paint_event(self, c, ruler, widths, xs, center, cy, evk):
-        """The focused pill grows into a black island carrying the message, then shrinks back into the pill."""
+        """The focused pill grows into a black island carrying the message; a new message morphs the island
+        (width springs, text cross-fades) instead of swapping; then it shrinks back into the pill."""
         tr = self.ev_msg
         k = self.focus_index
         w0 = max(widths[k], 14.) if self.items and k < len(widths) else 14.
         h0 = 14.5 if self.items else 8.
         feed = self.feed
-        feed.font(c, 10, True)
-        text = tr.get('label', '')
-        room = ruler.width - 16. - 16 - 10 - 7 - 16
-        while len(text) > 2 and c.text_extents(text).x_advance > room:
-            text = text[:-2] + '…' if not text.endswith('…') else text[:-2] + '…'
-        tw = c.text_extents(text).x_advance
+        text, tw = self._ev_text(c, ruler, tr)
         want = min(ruler.width - 16., 16 + 10 + 7 + tw + 16)
+        if self.ev_wsp is None:
+            self.ev_wsp = EvSpring(want, omega=20, zeta=.78)
+        self.ev_wsp.t = want
+        want_now = self.ev_wsp.x
         e = max(0., min(1.2, evk))
-        w = w0 + (want - w0) * e
-        h = h0 + (22. - h0) * min(1., e)
+        ew = e ** 1.9                      # width lags behind, so the island is never wide and empty
+        w = w0 + (want_now - w0) * ew
+        h = h0 + (22. - h0) * min(1., e) ** 1.4
         cx = (xs[k] if self.items and k < len(xs) else center)
         cx = cx + (center - cx) * min(1., e)
         x0 = max(2., min(ruler.width - 2. - w, cx - w / 2))
@@ -221,17 +261,27 @@ class MergedTheme(SpringHeadingTheme):
         feed.rr(c, x0, cy - h / 2, w, h, h / 2)
         c.set_source_rgb(.016, .016, .022); c.fill_preserve()
         c.set_source_rgba(1, 1, 1, .10); c.set_line_width(.7); c.stroke()
-        show = max(0., min(1., (e - .55) / .35))
+        show = max(0., min(1., (e - .22) / .28))
         if show > .01:
             feed.rr(c, x0, cy - h / 2, w, h, h / 2)
             c.clip()
-            cxl = x0 + (w - (10 + 7 + tw)) / 2
-            c.push_group()
-            feed.msg_icon(c, cxl + 5, cy, tr.get('icon'), (.97, .97, 1.), accent_of(ruler))
-            feed.font(c, 10, True)
-            c.set_source_rgba(.97, .97, 1., 1)
-            c.move_to(cxl + 10 + 7, cy + 3.6); c.show_text(text)
-            c.pop_group_to_source(); c.paint_with_alpha(show)
+            xf = max(0., min(1., self.ev_xf.x)) if self.ev_prev is not None else 1.0
+            mid = x0 + w / 2
+            layers = []
+            if self.ev_prev is not None and xf < .999:
+                layers.append((self.ev_prev, (1 - xf) * show, -3.0 * xf))
+            layers.append((tr, xf * show, 3.0 * (1 - xf)))
+            for msg, a_, dy in layers:
+                if a_ < .01:
+                    continue
+                label, mtw = self._ev_text(c, ruler, msg)
+                cxl = mid - (10 + 7 + mtw) / 2
+                c.push_group()
+                feed.msg_icon(c, cxl + 5, cy + dy, msg.get('icon'), (.97, .97, 1.), accent_of(ruler))
+                feed.font(c, 10, True)
+                c.set_source_rgba(.97, .97, 1., 1)
+                c.move_to(cxl + 10 + 7, cy + 3.6 + dy); c.show_text(label)
+                c.pop_group_to_source(); c.paint_with_alpha(a_)
         c.pop_group_to_source(); c.paint_with_alpha(alpha)
         c.restore()
 

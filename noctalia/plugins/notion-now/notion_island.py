@@ -332,6 +332,9 @@ class NotionIsland:
             d = {}
         self.sync = (d.get('sources') or {}).get('notion') or {}
         self.sync_updated = d.get('updated', 0)
+        if self.sync_updated > getattr(self, 'sync_base', 0):      # a manual sync finished: stop the spinner
+            self.sync_base = self.sync_updated
+            self.sync_until = 0.0
         events = []
         for e in d.get('events') or []:
             try:
@@ -1363,8 +1366,10 @@ class NotionIsland:
         parts = key.split(':')
         kind = parts[0]
         if key == 'refresh':
-            spawn(['systemctl', '--user', 'start', 'notion-now-sync.service'])
-            self.sync_until = time.monotonic() + 4.0
+            if time.monotonic() >= self.sync_until:                  # one sync at a time
+                self.sync_base = self.sync_updated
+                spawn(['systemctl', '--user', 'start', 'notion-now-sync.service'])
+                self.sync_until = time.monotonic() + 30.0         # spins until the data actually updates
         elif key == 'page:settings':
             self.page = 'settings'
         elif key == 'page:main':

@@ -735,6 +735,7 @@ class Island:
         cx, cy = RING_C
         cr.set_line_width(width)
         cr.set_line_cap(1)
+        cr.new_path()
         cr.arc(cx, cy, RING_R, 0, math.tau)
         cr.set_source_rgba(*THEME.text, .09)
         cr.stroke()
@@ -853,6 +854,7 @@ class Island:
         for i in range(4):
             dx = cx + (i - 1.5) * 18
             filled = i < done_n or (phase != 'focus' and i == done_n - 1 and False)
+            cr.new_path()
             cr.arc(dx, 362, 4.2, 0, math.tau)
             if filled:
                 cr.set_source_rgba(*PHASE_COL['focus'], 1)

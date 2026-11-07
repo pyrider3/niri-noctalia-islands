@@ -47,6 +47,17 @@ def save_json(path, value):
 
 
 def request_json(url, headers=None, body=None, form=False):
+    """One request, retried on transient network errors and server-side (5xx) failures."""
+    for attempt in range(3):
+        try:
+            return _request_json_once(url, headers, body, form)
+        except CalendarError as error:
+            if attempt == 2 or not getattr(error, 'transient', False):
+                raise
+            time.sleep(1 + attempt)
+
+
+def _request_json_once(url, headers=None, body=None, form=False):
     headers = dict(headers or {})
     data = None
     if body is not None:
@@ -67,9 +78,13 @@ def request_json(url, headers=None, body=None, form=False):
             raise CalendarError('找不到日历或数据库，请检查链接和共享权限') from None
         if e.code == 429:
             raise CalendarError('请求过于频繁，将在下次同步重试') from None
-        raise CalendarError('服务返回错误（HTTP %s）' % e.code) from None
+        error = CalendarError('服务返回错误（HTTP %s）' % e.code)
+        error.transient = e.code >= 500
+        raise error from None
     except (OSError, ValueError):
-        raise CalendarError('网络连接失败或服务响应异常') from None
+        error = CalendarError('网络连接失败或服务响应异常')
+        error.transient = True
+        raise error from None
 
 
 def paged(url, headers, key='items', body=None):
@@ -168,15 +183,21 @@ def notion_events(config, timezone, begin, finish):
             if date_key not in date_keys:
                 raise CalendarError('指定的日期字段不存在')
             name = source.get('name') or notion_title(meta.get('title', [])) or 'Notion'
-            # No lower start bound: include long-running ranges that began before today.
+            # Only look back LOOKBACK_DAYS: without a lower bound every past event in the database is paged in on each
+            # sync (hundreds of requests), which made the sync slower and slower until systemd killed it.
+            lower = (begin - dt.timedelta(days=LOOKBACK_DAYS)).isoformat()
             pages = paged('https://api.notion.com/v1/data_sources/' + source_id + '/query', headers,
-                'results', {'page_size': 100, 'filter': {'property': date_key,
-                'date': {'on_or_before': finish.isoformat()}}})
+                'results', {'page_size': 100, 'filter': {'and': [
+                    {'property': date_key, 'date': {'on_or_before': finish.isoformat()}},
+                    {'property': date_key, 'date': {'on_or_after': lower}}]}})
             for page in pages:
                 event = normalize_notion(page, date_key, name, timezone)
                 if event and overlaps(event, begin.timestamp(), finish.timestamp()):
                     events.append(event)
     return events
+
+
+LOOKBACK_DAYS = 2       # look back 2 days (the sync already looks 2 days ahead); older ranges are not shown
 
 
 def overlaps(event, begin, finish):

@@ -20,6 +20,7 @@ from motion import WidthMotion
 
 STATE=Path(os.environ.get('XDG_STATE_HOME',str(Path.home()/'.local/state')))/'media-capsule'
 HEIGHT,SCALE,MAX_WIDTH=28,2,720
+MIN_WIDTH=96            # short titles get a short capsule
 
 
 def read(path):
@@ -193,7 +194,7 @@ class Media:
         c=cairo.Context(cairo.ImageSurface(cairo.FORMAT_ARGB32,1,1));self.font(c,13)
         label=(data.get('title') or '暂无曲目')+(' · '+data['artist'] if data.get('artist') else '')
         maximum=max(180,min(MAX_WIDTH,int(self.input.get('max_width',360))))
-        self.motion.target=max(180,min(maximum,46+c.text_extents(label).x_advance))
+        self.motion.target=max(MIN_WIDTH,min(maximum,46+c.text_extents(label).x_advance))
         before=self.motion.width;self.motion.step(delta)
         mode=self.input.get('title_scroll','hover')
         scrolling=mode=='always' or (mode=='hover' and self.input.get('hovered',False))

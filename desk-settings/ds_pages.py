@@ -4,7 +4,7 @@ from pathlib import Path
 
 import backend as B
 from gi.repository import GLib
-from ds_ui import Button, Cards, Group, Info, Page, Section, Seg, Step, Switch
+from ds_ui import Button, Cards, Group, Info, Page, Section, Seg, Step, Switch, Text
 
 NOTION = Path.home() / '.local/state/notion-now/preferences.json'
 WALL_DIR = Path.home() / 'Pictures/wall'
@@ -69,6 +69,7 @@ def page_hub(app):
     return Page('中间刻度尺',
         Section('事件提示', '原版赛博刻度尺的新功能：开启后，这些变化会让刻度尺变形成一个黑色胶囊提示'),
         Group(Switch('事件提示', '麦克风、Wi-Fi、蓝牙、勿扰、大小写与数字锁定、电源模式、键盘布局', lambda: get('events', False), lambda v: set_('events', v), False)),
+        Group(Switch('单击展开面板', '仅「合并刻度」主题：点当前窗口胶囊，展开所有工作区与窗口的总览，可点击跳转，底部有浮动、全屏、移动、关闭', lambda: get('panel', False), lambda v: set_('panel', v), False)),
         Section('外观', '栏中间的 niri 工作区与窗口刻度尺'),
         Group(Switch('黑色灵动岛模式', '仅「合并刻度」主题：打开则当前窗口胶囊平时就是黑色；关闭保持白色胶囊。事件提示都会从胶囊里长出黑岛', lambda: get('island', False), lambda v: set_('island', v), False)),
         Group(Seg('主题', None, themes, lambda: get('theme', 'classic'), lambda v: set_('theme', v), 'classic'),
@@ -227,6 +228,15 @@ def page_noctalia(app):
 
     def tenth(path, d):
         return (lambda: round(float(B.ncfg_get(path, d)) * 10)), (lambda v: B.ncfg_set(path, round(v / 10, 1)))
+    auto = Switch('自动定位', '按网络判断所在城市；填了城市后会自动关闭', *c('location.auto_locate', True), True)
+
+    def set_city(v):
+        # a city turns auto-locate off; clearing it turns auto-locate back on
+        ok = B.ncfg_set('location.address', v)
+        ok = B.ncfg_set('location.auto_locate', not v) and ok
+        auto.value = not v
+        return ok
+    city = Text('城市', '用于天气，如「北京」「上海」或 Shanghai；回车确认', lambda: B.ncfg_get('location.address', ''), set_city, '自动定位')
     return Page('状态栏与 Noctalia',
         Section('状态栏', '改动经 Noctalia 写入并热加载'),
         Group(Switch('胶囊底', '每个组件带一个圆角底', *c('bar.default.capsule', True), True),
@@ -243,8 +253,7 @@ def page_noctalia(app):
         Group(Seg('明暗', None, [('dark', '深色'), ('light', '浅色')], *c('theme.shell_mode', 'dark'), 'dark'),
               Switch('深色时使用纯黑', None, *c('theme.pure_black_dark', True), True)),
         Section('位置与停靠'),
-        Group(Switch('自动定位', '用于天气等', *c('location.auto_locate', True), True),
-              Switch('底部程序坞', None, *c('dock.enabled', False), False)))
+        Group(auto, city, Switch('底部程序坞', None, *c('dock.enabled', False), False)))
 
 
 CATEGORIES = [

@@ -83,7 +83,7 @@ function F.path(mood, elapsed, shape, avatarColor)
     shape = silhouettes[shape] and shape or "blob"
     local dark = false
     local arrival = animate and mood == "unread" and elapsed < 650
-    local key = "avatar-v7-" .. shape .. "-" .. mood .. "-" .. string.sub(color, 2) .. "-" .. tostring(frame) .. (arrival and "-arrival" or "")
+    local key = "avatar-v8-" .. shape .. "-" .. mood .. "-" .. string.sub(color, 2) .. "-" .. tostring(frame) .. (arrival and "-arrival" or "")
     local path = dir .. "/" .. key .. ".svg"
     if cache[key] then return path end
     if noctalia.fileExists(path) then cache[key]=true return path end

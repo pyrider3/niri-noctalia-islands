@@ -62,7 +62,7 @@ function update()
     local alive = araw and noctalia.json.decode(araw) or {}
     if type(alive) ~= "table" then alive = {} end
     if now-(alive.t or 0)*1000>4000 and now-lastIsland>6000 then startIsland() end
-    local width = value.available == false and 0 or math.max(180, math.min(720, tonumber(value.width) or 220))
+    local width = value.available == false and 0 or math.max(96, math.min(720, tonumber(value.width) or 220))
     barWidget.setVisible(width > 0)
     if width ~= lastWidth then
         barWidget.render(ui.row({key = "media-capsule", gap = -width, align = "center"}, width > 0 and {

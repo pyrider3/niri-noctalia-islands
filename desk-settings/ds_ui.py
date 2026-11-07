@@ -49,6 +49,32 @@ class Row:
             dl(cr, gfx.make_layout(sub, 12, False, width=w or 420, lines=1), x, y + 32, (*ui.txt, .5))
 
 
+class Text(Row):
+    """A one-line text field: shows the value, click it to type (the app floats a real entry over it), Enter applies."""
+
+    def __init__(self, title, sub, get, set_, placeholder='点击输入'):
+        super().__init__()
+        self.title, self.sub, self.get, self.set_, self.ph = title, sub, get, set_, placeholder
+        self.value = str(get() or '')
+        self.h = 64.0 if sub else 54.0
+
+    def draw(self, ui, cr, x, y, w):
+        fw, fh = 210.0, 34.0
+        self.title_block(ui, cr, x + PAD, y, self.title, self.sub, w - fw - 60)
+        fx, fy = x + w - PAD - fw, y + (self.h - fh) / 2
+        hot = ui.zone(self, 'edit', fx, fy, fw, fh)
+        rrect(cr, fx, fy, fw, fh, 12)
+        cr.set_source_rgba(*ui.txt, .14 if hot else .08)
+        cr.fill()
+        shown = self.value or self.ph
+        lay = gfx.make_layout(shown, 14, False, width=fw - 24, lines=1)
+        dl(cr, lay, fx + 12, fy + (fh - gfx.text_size(lay)[1]) / 2, (*ui.txt, .95 if self.value else .35))
+
+    def click(self, ui, kind, lx, ly):
+        if ui.edit_cb and ui.last_zone:
+            ui.edit_cb(self, ui.last_zone)
+
+
 class Section(Row):
     h = 46.0
 
@@ -353,6 +379,8 @@ class Ui:
         self.zones = []
         self.pointer = None
         self.apply_cb = apply_cb
+        self.edit_cb = None
+        self.last_zone = None
         self.pressed = {}
         self.view_top = 0.0
         self.view_bottom = 0.0

@@ -28,6 +28,7 @@ local function configure()
     input.animate = noctalia.getConfig("animate") ~= false
     input.show_app = noctalia.getConfig("show_app") ~= false
     input.events = noctalia.getConfig("events") == true
+    input.panel = noctalia.getConfig("panel") == true and (noctalia.getConfig("theme") or "classic") == "merged"
     input.island = noctalia.getConfig("island") == true and input.theme == "merged"
     evOn = input.events and input.theme ~= "merged"
     input.duration = math.clamp(tonumber(noctalia.getConfig("duration")) or 320, 120, 800)
@@ -36,6 +37,17 @@ end
 local function evWrite()
     local raw = noctalia.json.encode(evInput)
     if raw ~= evSent then noctalia.writeFile(evDir .. "/input.json", raw) evSent = raw end
+end
+local panelStart, panelAlive = 0, noctalia.expandPath("~/.local/state/cyber-ruler/panel-alive.json")
+local function ensurePanel(now)
+    if not input.panel or now - panelStart < 6000 then return end
+    local raw = noctalia.readFile(panelAlive)
+    local v = raw and noctalia.json.decode(raw) or {}
+    if type(v) ~= "table" then v = {} end
+    if now / 1000 - (v.t or 0) > 4 then
+        noctalia.runAsync({"python3", noctalia.pluginDir() .. "/ruler_panel.py"})
+        panelStart = now
+    end
 end
 local function startEvents()
     noctalia.mkdirAll(evDir)
@@ -66,7 +78,7 @@ local function windowLane(axis)
 end
 function onClick()
     if singleLane() then
-        if input.hover >= 0 then command(input.show_windows and "window-click" or "click", input.hover) end
+        if input.hover >= 0 then command((input.show_windows or input.theme == "merged") and "window-click" or "click", input.hover) end
         return
     end
     if input.hover >= 0 then command(windowLane() and "window-click" or "click", input.hover) end
@@ -86,6 +98,7 @@ function onExit()
 end
 function update()
     local now = noctalia.nowMs()
+    ensurePanel(now)
     if now-lastSend > 1000 then send() lastSend = now end
     local raw = noctalia.readFile(dir .. "/status.json")
     local status = raw and noctalia.json.decode(raw) or {}

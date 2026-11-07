@@ -146,3 +146,10 @@ type = "bool"
 label_key = "settings.island"
 default = false
 visible_when = { key = "theme", values = ["merged"] }
+
+[[setting]]
+key = "panel"
+type = "bool"
+label_key = "settings.panel"
+default = false
+visible_when = { key = "theme", values = ["merged"] }
