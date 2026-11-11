@@ -193,7 +193,7 @@ class Ruler:
         self.tick_width_scale = max(50, min(250, float(config.get('tick_width_percent', 125)))) / 100
         self.hover = config.get('hover', -1); self.hover_y = config.get('hover_y', 0)
         self.show_windows = config.get('show_windows', True)
-        self.island = bool(config.get('island', False)); self.events = bool(config.get('events', False)); self.panel = bool(config.get('panel', False))
+        self.island = bool(config.get('island', False)); self.events = bool(config.get('events', False)); self.panel = bool(config.get('panel', False)); self.event_ime = bool(config.get('event_ime', True))
         self.theme = config.get("theme", "classic")
         self.accent_source = config.get('accent_source', 'default'); self.accent_custom = config.get('accent_custom', '#ff8fb8')
         if self.theme not in ("classic", *HEADING_THEMES, "islands", "filmstrip"): self.theme = "classic"

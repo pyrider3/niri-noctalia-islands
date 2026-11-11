@@ -110,8 +110,11 @@ class Toast:
         gfx.shadow(cr, x0, y0, w, h, RADIUS, 1.0 + hv * .5)
         rrect(cr, x0, y0, w, h, RADIUS)
         base = mix(th.card, th.card_hi, hv)
-        cr.set_source_rgba(*base, .97)
-        cr.fill_preserve()
+        if gfx.style() == 'glass':
+            gfx.glass_flat(cr)
+        else:
+            cr.set_source_rgba(*base, .97)
+            cr.fill_preserve()
         if crit:
             pulse = .55 + .45 * math.sin(age * 4.2)
             cr.set_source_rgba(*th.danger, .35 + .5 * pulse)

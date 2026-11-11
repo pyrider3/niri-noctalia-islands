@@ -257,8 +257,11 @@ class IslandLayer:
         cr.translate(0, -bob * 0 + 0)
         gfx.shadow(cr, cx - w / 2, 0, w, h, 26, 1.2, dy=8)
         island_path(cr, cx, w, h, rb=min(34, h / 2))
-        cr.set_source_rgb(0, 0, 0)
-        cr.fill_preserve()
+        if gfx.style() == 'glass':
+            gfx.glass_flat(cr)
+        else:
+            cr.set_source_rgb(0, 0, 0)
+            cr.fill_preserve()
         cr.set_source_rgba(*th.text, .09)
         cr.set_line_width(1)
         cr.stroke()

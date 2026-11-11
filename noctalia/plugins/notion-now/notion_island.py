@@ -465,6 +465,7 @@ class NotionIsland:
         self.L = max(0.0, min(fx - 40.0, self.screen_w - WIN_W))
         LS.set_margin(self.win, LS.Edge.LEFT, int(self.L))
         THEME.refresh(force=True)
+        gfx.glass_prepare()
         self.catcher.set_visible(self.mode == 'panel')
         if self.mode == 'panel':
             self.catcher.present()
@@ -754,11 +755,8 @@ class NotionIsland:
             cr.paint_with_alpha(sa)
             cr.restore()
         rrect(cr, x, y, w, h, rad)
-        cr.set_source_rgb(*BLACK)
-        cr.fill_preserve()
-        cr.set_source_rgba(1, 1, 1, .07)
-        cr.set_line_width(1)
-        cr.stroke()
+        gfx.glass_origin(self.L, 0)
+        gfx.panel_fill(cr, BLACK, .07)
         ca = clamp(self.ca.x)
         if ca > .01:
             cr.save()

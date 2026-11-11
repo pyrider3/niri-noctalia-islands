@@ -47,11 +47,14 @@ class Feed(Hub):
         except (OSError, ValueError):
             return {}
 
+    allow_kbd = True        # the settings switch for input-method / keyboard-layout pop-ups
     MIN_SHOW = .9          # seconds a message stays before the next one takes over
 
     def trigger(self, kind, now, **kw):
         """Queue a message that arrives while another one has only just appeared, so each gets seen."""
         dur = kw.pop('dur', None)
+        if kw.get('icon') == 'kbd' and not self.allow_kbd:
+            return
         if kind == 'msg' and self.trans and now < self.trans['t0'] + self.MIN_SHOW:
             self.pending.append(dict(kw, dur=dur))
             return

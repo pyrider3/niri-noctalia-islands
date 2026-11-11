@@ -1,0 +1,55 @@
+{
+  "roots": [
+    "~"
+  ],
+  "include_hidden_dirs": [
+    ".config"
+  ],
+  "exclude_dir_names": [
+    ".git",
+    "node_modules",
+    "__pycache__",
+    ".cache",
+    ".npm",
+    ".npm-global",
+    ".cargo",
+    ".rustup",
+    "target",
+    "Cache",
+    "Code Cache",
+    "GPUCache",
+    "IndexedDB",
+    "Local Storage",
+    "Service Worker",
+    "blob_storage",
+    "Crashpad",
+    "CacheStorage",
+    "ScriptCache",
+    "Trash",
+    "venv",
+    ".venv",
+    "site-packages",
+    "backups"
+  ],
+  "exclude_paths": [
+    "~/GoogleDrive",
+    "~/Games",
+    "~/pr.encrypted",
+    "~/.local",
+    "~/.steam",
+    "~/.config/Claude",
+    "~/.config/google-chrome",
+    "~/.config/chromium",
+    "~/.config/Code",
+    "~/.config/Cursor",
+    "~/.config/discord",
+    "~/.config/obsidian",
+    "~/.config/pulse",
+    "~/.config/dconf",
+    "~/.config/mozilla",
+    "~/.config/Codex",
+    "~/.mozilla",
+    "~/.config/BraveSoftware"
+  ],
+  "max_files": 600000
+}

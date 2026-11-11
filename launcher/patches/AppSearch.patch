@@ -1,0 +1,40 @@
+--- a/source/services/AppSearch.qml
++++ b/source/services/AppSearch.qml
+@@ -204,7 +204,8 @@
+         const entries = Array.from(DesktopEntries.applications.values)
+             .sort((a, b) => a.name.localeCompare(b.name))
+         _cachedList = entries
+-        _cachedPreppedNames = entries.map(a => ({ name: Fuzzy.prepare(`${a.name} `), entry: a }))
++        // Chinese names also carry their pinyin ("微信" -> "weixin wx") so Latin letters find them.
++        _cachedPreppedNames = entries.map(a => ({ name: Fuzzy.prepare(`${a.name} ${Pinyin.hasCjk(a.name) ? Pinyin.keys(a.name) : ""} `), entry: a }))
+         _cachedPreppedIcons = entries.map(a => ({ name: Fuzzy.prepare(`${a.icon} `), entry: a }))
+ 
+         // Build reverse-lookup maps for matching toplevel appIds to desktop entries.
+@@ -314,6 +315,19 @@
+                 score += 10000
+             }
+ 
++            // Pinyin: typing "weixin" or "wx" should put 微信 at the top
++            if (Pinyin.hasCjk(entry.name)) {
++                const py = Pinyin.get(entry.name)
++                if (py.full.startsWith(searchLower) || py.init.startsWith(searchLower)) {
++                    score += 50000
++                } else if (py.init.includes(searchLower)) {
++                    score += 25000                       // "wx" inside "htwx" (后台微信)
++                } else if (py.full.includes(searchLower)) {
++                    score += 15000
++                }
++            }
++
++            score += LauncherExtra.boost("app:" + (entry.id ?? ""))          // apps you actually use rise
+             return { entry, score }
+         }).sort((a, b) => b.score - a.score)
+ 
+@@ -342,6 +356,7 @@
+         const raw = entry.originalEntry ?? entry
+         const desktopId = String(entry.id ?? raw?.id ?? "").trim()
+         if (!desktopId) return false
++        LauncherExtra.use("app:" + desktopId)
+         // The launcher uses isolated XDG paths and a read-only mount namespace.
+         // Ask the user's manager to launch applications in their normal session,
+         // keeping every child alive even if a desktop launcher exits after forking.

@@ -10,7 +10,7 @@ import json, os, time
 from pathlib import Path
 from island_feed import Feed
 from events_core import Spring as EvSpring
-from theme_kit import DEFAULT, WHITE, GRAY, ORANGE, mix, smooth, fill_capsule, capsule, glow, soft_glow, label, text_width
+from theme_kit import glass_on, glass_fill, DEFAULT, WHITE, GRAY, ORANGE, mix, smooth, fill_capsule, capsule, glow, soft_glow, label, text_width
 
 SMALL, FULL = 4., 7.          # capsule width of a window in an inactive / active workspace
 GAP, GROUP_GAP = 3.5, 11.
@@ -62,6 +62,8 @@ class MergedTheme(SpringHeadingTheme):
         on = bool(getattr(ruler, 'events', False))
         if on and self.feed is None:
             self.feed = Feed()
+        if on and self.feed:
+            self.feed.allow_kbd = bool(getattr(ruler, 'event_ime', True))
         tr = self.feed.poll() if (on and self.feed) else None
         if tr:
             if tr is not self.ev_msg:
@@ -179,6 +181,9 @@ class MergedTheme(SpringHeadingTheme):
         hover_k = self.hit_item(ruler.hover, width) if hover_x is not None else None
         # workspace number floats above the active group
         active = next((w for w in ruler.workspaces if w['id'] == ruler.active_id), ruler.workspaces[0])
+        if island:      # dark outline so the pieces stay readable on a bright wallpaper
+            for dx, dy in ((-.8, 0), (.8, 0), (0, -.8), (0, .8), (-.6, -.6), (.6, .6), (-.6, .6), (.6, -.6)):
+                label(c, f"{active['idx']:02}", center + dx, 8.5 + dy, 7, (0, 0, 0), .55*(1-min(1., evk)))
         label(c, f"{active['idx']:02}", center, 8.5, 7, accent, .9*(1-min(1., evk)))
         # hairlines between workspace groups
         for k in range(1, len(self.items)):
@@ -186,7 +191,15 @@ class MergedTheme(SpringHeadingTheme):
                 x = (xs[k]-widths[k]/2+xs[k-1]+widths[k-1]/2)/2
                 a = self.fade(x, width)*.4
                 if a > .01:
-                    c.set_source_rgba(*GRAY, a); c.set_line_width(.8); c.set_line_cap(cairo.LINE_CAP_ROUND)
+                    c.set_line_cap(cairo.LINE_CAP_ROUND)
+                    if island and glass_on():
+                        c.set_source_rgba(1, 1, 1, .55 * min(1., a * 2.5)); c.set_line_width(1.0)
+                    elif island:
+                        c.set_source_rgba(1, 1, 1, .22 * min(1., a * 2.5)); c.set_line_width(2.6)      # faint light rim
+                        c.move_to(x, cy-6); c.line_to(x, cy+6); c.stroke()
+                        c.set_source_rgba(.016, .016, .022, min(1., a * 2.5)); c.set_line_width(1.5)
+                    else:
+                        c.set_source_rgba(*GRAY, a); c.set_line_width(.8)
                     c.move_to(x, cy-6); c.line_to(x, cy+6); c.stroke()
         floating_marks = []
         for k, it in enumerate(self.items):
@@ -196,6 +209,17 @@ class MergedTheme(SpringHeadingTheme):
             m = smooth(1-abs(k-pos)) if it['column'] is not None else 0.
             near = 1. if hover_k == k else 0.
             if it['window'] is None:                                  # empty workspace: hollow dot
+                c.new_path()                               # text above leaves a current point: arc() would join it
+                if island and glass_on():
+                    c.set_source_rgba(1, 1, 1, .60 * a); c.set_line_width(1.2)
+                    c.arc(x, cy, 2.3, 0, math.tau); c.stroke()
+                    continue
+                if island:
+                    c.set_source_rgba(1, 1, 1, .24 * a); c.set_line_width(2.6)      # faint light rim
+                    c.arc(x, cy, 2.3, 0, math.tau); c.stroke(); c.new_path()
+                    c.set_source_rgba(.016, .016, .022, a); c.set_line_width(1.6)
+                    c.arc(x, cy, 2.3, 0, math.tau); c.stroke()
+                    continue
                 c.set_source_rgba(*GRAY, a*(.35+.25*near)); c.set_line_width(.9)
                 c.arc(x, cy, 2.1, 0, math.tau); c.stroke(); continue
             h = (4.+(7.5-4.)*e)+7.*m+1.5*near
@@ -203,14 +227,22 @@ class MergedTheme(SpringHeadingTheme):
             alpha = a*(.28+.3*e+.42*m+.25*near)
             w = widths[k]
             if m > .05 and not island: soft_glow(c, x, cy, w, h, cy, height-cy, rgb, .65*m*a)
-            fill_capsule(c, x, cy+.6, w, h, (0, 0, 0), alpha*.3)
+            if not island:
+                fill_capsule(c, x, cy+.6, w, h, (0, 0, 0), alpha*.3)
             capsule(c, x, cy, w, h)
             body = cairo.LinearGradient(0, cy-h/2, 0, cy+h/2)
             body.add_color_stop_rgba(0, *mix(rgb, WHITE, .35), alpha); body.add_color_stop_rgba(1, *rgb, alpha)
-            if island and m > .05:
+            if island and glass_on():
                 capsule(c, x, cy, w, h)
-                c.set_source_rgba(.016, .016, .022, min(1., alpha*1.6)*(.35+.65*m)); c.fill_preserve()
-                c.set_source_rgba(1, 1, 1, .10*m*a); c.set_line_width(.7); c.stroke()
+                if m > .05:
+                    glass_fill(c, a, .66)                      # the focused pill: dark glass
+                else:                                           # the others: little glass beads
+                    c.set_source_rgba(1, 1, 1, .30 * a); c.fill_preserve()
+                    c.set_source_rgba(1, 1, 1, .55 * a); c.set_line_width(.6); c.stroke()
+            elif island:      # black dots like the pill, with a faint light rim so they still show on a dark wallpaper
+                capsule(c, x, cy, w, h)
+                c.set_source_rgba(.016, .016, .022, a); c.fill_preserve()
+                c.set_source_rgba(1, 1, 1, (.24 - .14 * m) * a); c.set_line_width(.7); c.stroke()
             else:
                 c.set_source(body); c.fill()
             if m > .55:
@@ -259,8 +291,11 @@ class MergedTheme(SpringHeadingTheme):
         feed.rr(c, x0, cy - h / 2 + .5, w, h, h / 2)
         c.set_source_rgba(0, 0, 0, .45); c.fill()
         feed.rr(c, x0, cy - h / 2, w, h, h / 2)
-        c.set_source_rgb(.016, .016, .022); c.fill_preserve()
-        c.set_source_rgba(1, 1, 1, .10); c.set_line_width(.7); c.stroke()
+        if glass_on():
+            glass_fill(c, 1.0, .66)
+        else:
+            c.set_source_rgb(.016, .016, .022); c.fill_preserve()
+            c.set_source_rgba(1, 1, 1, .10); c.set_line_width(.7); c.stroke()
         show = max(0., min(1., (e - .22) / .28))
         if show > .01:
             feed.rr(c, x0, cy - h / 2, w, h, h / 2)

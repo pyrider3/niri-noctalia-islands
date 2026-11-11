@@ -221,6 +221,7 @@ class Panel:
         LS.set_margin(self.win, LS.Edge.LEFT, int(self.cx - self.win_w / 2))
         LS.set_margin(self.win, LS.Edge.TOP, 0)
         THEME.refresh(force=True)
+        gfx.glass_prepare()
         self.catcher.set_visible(True)
         self.catcher.present()
         self.win.present()
@@ -378,11 +379,8 @@ class Panel:
         self.zones = []
         gfx.shadow(cr, x, y, w, h, 28, 1.5, 10)
         rrect(cr, x, y, w, h, min(28, h / 2))
-        cr.set_source_rgb(*BLACK)
-        cr.fill_preserve()
-        cr.set_source_rgba(1, 1, 1, .09)
-        cr.set_line_width(1)
-        cr.stroke()
+        gfx.glass_origin(0, 0)
+        gfx.panel_fill(cr, BLACK, .09)
         a = clamp(self.ca.x)
         if a < .02:
             return

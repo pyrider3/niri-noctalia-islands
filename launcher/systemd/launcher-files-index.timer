@@ -1,0 +1,10 @@
+[Unit]
+Description=Keep the launcher's file index fresh
+
+[Timer]
+OnStartupSec=45
+OnUnitInactiveSec=15min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

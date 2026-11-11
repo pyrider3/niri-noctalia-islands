@@ -48,7 +48,7 @@ function update()
     if now-lastSkin > 1000 then
         input.accent = noctalia.getColor("primary") or "#edb69b"
         input.text = noctalia.getColor("on_surface") or "#e9e9e6"
-        input.max_width = math.max(180, math.min(720, tonumber(noctalia.getConfig("max_width")) or 360))
+        input.max_width = math.max(96, math.min(720, tonumber(noctalia.getConfig("max_width")) or 360))
         input.title_scroll = noctalia.getConfig("title_scroll") or "hover"
         input.scroll_speed = math.max(8, math.min(60, tonumber(noctalia.getConfig("scroll_speed")) or 22))
         lastSkin = now

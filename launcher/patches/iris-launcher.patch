@@ -1,0 +1,21 @@
+--- a/iris-launcher
++++ b/iris-launcher
+@@ -13,11 +13,16 @@
+ if mode in ['status','stop','close']:
+  r=ipc('quit' if mode=='stop' else mode)
+  print(r.stdout,end='');print(r.stderr,end='',file=sys.stderr);raise SystemExit(r.returncode)
+-r=ipc(mode,*sys.argv[2:])
+-if r.returncode==0:raise SystemExit(0)
++if mode=='prewarm':
++ if ipc('status').returncode==0:raise SystemExit(0)
++ mode='warm'
++else:
++ r=ipc(mode,*sys.argv[2:])
++ if r.returncode==0:raise SystemExit(0)
+ log=open(base/'logs/session.log','a')
+ proc=subprocess.Popen(['bwrap','--ro-bind','/','/','--dev-bind','/dev','/dev','--proc','/proc','--bind',str(base),str(base),'--bind',env.get('XDG___HOME__/.local/share/codex-iris-launcher/runtime_DIR','/run/user/1000'),env.get('XDG___HOME__/.local/share/codex-iris-launcher/runtime_DIR','/run/user/1000'),'--tmpfs','/tmp','--',str(qs),'-n','-p',str(source)],env=env,stdout=log,stderr=log,start_new_session=True)
+ (base/'pid').write_text(str(proc.pid))
++if mode=='warm':raise SystemExit(0)
+ for _ in range(100):
+  if proc.poll() is not None:raise SystemExit('Launcher exited; see '+str(base/'logs/session.log'))
+  r=ipc('search',*sys.argv[2:]) if mode=='search' else ipc('open')

@@ -1,0 +1,10 @@
+[Unit]
+Description=Launcher clipboard history watcher
+After=graphical-session.target
+[Service]
+ExecStart=__HOME__/.local/bin/wl-paste --type text --watch /usr/bin/python3 __HOME__/.local/share/codex-iris-launcher/files/launcher_extra.py clip-add
+Restart=always
+RestartSec=3
+Nice=10
+[Install]
+WantedBy=default.target

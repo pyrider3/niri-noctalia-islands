@@ -1,0 +1,12 @@
+[Unit]
+Description=Pre-start the iRiS launcher so the first Mod+Space is instant
+After=graphical-session.target
+PartOf=graphical-session.target
+[Service]
+Environment=LANG=zh_CN.UTF-8
+Environment=LANGUAGE=zh_CN
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=__HOME__/.local/share/codex-iris-launcher/iris-launcher prewarm
+[Install]
+WantedBy=graphical-session.target

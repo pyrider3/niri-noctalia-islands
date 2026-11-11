@@ -26,6 +26,8 @@ class Overlay(Hub):
     def poll_events(self, now):
         # only the message events; workspace changes are the ruler's own job
         super().poll_events(now)
+        if self.trans and self.trans.get('icon') == 'kbd' and not self.input.get('kbd', True):
+            self.trans = None
         if self.trans and self.trans.get('kind') != 'msg':
             self.trans = None
 

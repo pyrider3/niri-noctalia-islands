@@ -35,7 +35,7 @@ key = "max_width"
 type = "int"
 label_key = "settings.max_width"
 default = 360
-min = 180
+min = 96
 max = 720
 
 [[setting]]

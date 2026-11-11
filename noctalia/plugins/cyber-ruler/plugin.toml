@@ -153,3 +153,9 @@ type = "bool"
 label_key = "settings.panel"
 default = false
 visible_when = { key = "theme", values = ["merged"] }
+
+[[setting]]
+key = "event_ime"
+type = "bool"
+label_key = "settings.event_ime"
+default = true

@@ -68,7 +68,8 @@ def page_hub(app):
               ('islands', '窗口群岛'), ('filmstrip', '桌面底片')]
     return Page('中间刻度尺',
         Section('事件提示', '原版赛博刻度尺的新功能：开启后，这些变化会让刻度尺变形成一个黑色胶囊提示'),
-        Group(Switch('事件提示', '麦克风、Wi-Fi、蓝牙、勿扰、大小写与数字锁定、电源模式、键盘布局', lambda: get('events', False), lambda v: set_('events', v), False)),
+        Group(Switch('事件提示', '麦克风、Wi-Fi、蓝牙、勿扰、大小写与数字锁定、电源模式、切歌', lambda: get('events', False), lambda v: set_('events', v), False),
+              Switch('输入法切换提示', '切换中英 / 键盘布局时，在胶囊里弹出当前输入法', lambda: get('event_ime', True), lambda v: set_('event_ime', v), True)),
         Group(Switch('单击展开面板', '仅「合并刻度」主题：点当前窗口胶囊，展开所有工作区与窗口的总览，可点击跳转，底部有浮动、全屏、移动、关闭', lambda: get('panel', False), lambda v: set_('panel', v), False)),
         Section('外观', '栏中间的 niri 工作区与窗口刻度尺'),
         Group(Switch('黑色灵动岛模式', '仅「合并刻度」主题：打开则当前窗口胶囊平时就是黑色；关闭保持白色胶囊。事件提示都会从胶囊里长出黑岛', lambda: get('island', False), lambda v: set_('island', v), False)),
@@ -256,10 +257,35 @@ def page_noctalia(app):
         Group(auto, city, Switch('底部程序坞', None, *c('dock.enabled', False), False)))
 
 
+def page_media(app):
+    get, set_ = P('pyrider3/media-capsule')
+    return Page('媒体胶囊',
+        Section('宽度', '栏上播放胶囊的最大宽度；标题短的时候胶囊会自己变窄，超过最大宽度的标题会滚动'),
+        Group(Step('最大宽度', None, 96, 720, lambda: get('max_width', 360), lambda v: set_('max_width', v), 360, step=10, suffix=' px'),
+              Seg('标题滚动', None, [('never', '不滚动'), ('hover', '悬停时'), ('always', '一直滚动')],
+                  lambda: get('title_scroll', 'hover'), lambda v: set_('title_scroll', v), 'hover'),
+              Step('滚动速度', '数值越大越快', 8, 60, lambda: get('scroll_speed', 22), lambda v: set_('scroll_speed', v), 22, step=2)),
+        Section('频谱'),
+        Group(Switch('显示音频频谱', '胶囊底部随音乐跳动的频谱', lambda: get('audio_spectrum', True), lambda v: set_('audio_spectrum', v), True),
+              Step('频谱条数', None, 8, 64, lambda: get('audio_spectrum_bands', 20), lambda v: set_('audio_spectrum_bands', v), 20, step=2)))
+
+
+STYLE_FILE = Path.home() / '.local/state/desk-style/style.json'
+
+
+def page_style(app):
+    return Page('主题风格',
+        Section('整体风格', '所有的岛和面板一起切换：下次打开时生效'),
+        Group(Seg('风格', '黑色岛：纯黑底；液态玻璃：磨砂半透明，能隐约透出背后的内容，边缘有高光',
+                  [('black', '黑色岛'), ('glass', '液态玻璃')],
+                  lambda: B.json_get(STYLE_FILE, 'style', 'black'), lambda v: B.json_set(STYLE_FILE, 'style', v), 'black')),
+        Group(Info('液态玻璃每次打开时会截取一次背景并模糊，所以背后的画面是打开那一刻的样子；颜色会随背景深浅自动调整，保证文字清楚。', 62), card=False))
+
+
 CATEGORIES = [
-    ('桌面', [('wallpaper', '壁纸', 'image', page_wallpaper), ('we', '动态壁纸', 'play', page_we),
+    ('桌面', [('style', '主题风格', 'window', page_style), ('wallpaper', '壁纸', 'image', page_wallpaper), ('we', '动态壁纸', 'play', page_we),
             ('niri', '外观（niri）', 'window', page_niri)]),
     ('栏与岛', [('noctalia', '状态栏与 Noctalia', 'bar', page_noctalia), ('noti', '通知', 'bell', page_notifications),
-              ('clock', '时钟', 'clock', page_clock), ('notion', '日程', 'calendar', page_notion),
+              ('clock', '时钟', 'clock', page_clock), ('media', '媒体胶囊', 'play', page_media), ('notion', '日程', 'calendar', page_notion),
               ('hub', '中间刻度尺', 'grid', page_hub), ('osd', '提示弹窗', 'chat', page_osd)]),
 ]

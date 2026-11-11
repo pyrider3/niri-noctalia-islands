@@ -405,3 +405,186 @@ def initial(name):
         if ch.isalnum():
             return ch.upper()
     return '•'
+
+
+# ======================================================================= liquid glass
+# One switch (~/.local/state/desk-style/style.json) turns every island from black into liquid glass:
+# a blurred snapshot of what is behind the island, a dark tint, and bright specular rims.
+STYLE_FILE = Path.home() / '.local/state/desk-style/style.json'
+_style = {'t': 0.0, 'mt': None, 'v': 'black'}
+_glass = {'surf': None, 'sx': 1.0, 'sy': 1.0, 'ox': 0.0, 'oy': 0.0, 'lum': .3, 'at': 0.0}
+
+
+def style():
+    """'black' (default) or 'glass'; re-read at most once a second."""
+    now = time.monotonic()
+    if now - _style['t'] > 1.0:
+        _style['t'] = now
+        try:
+            mt = STYLE_FILE.stat().st_mtime
+            if mt != _style['mt']:
+                _style['mt'] = mt
+                v = json.loads(STYLE_FILE.read_text()).get('style', 'black')
+                _style['v'] = v if v in ('black', 'glass') else 'black'
+        except (OSError, ValueError):
+            _style['v'] = 'black'
+    return _style['v']
+
+
+def glass_origin(ox, oy):
+    """Screen position (logical px) of the window's top-left corner, so the snapshot lines up."""
+    _glass['ox'], _glass['oy'] = float(ox), float(oy)
+
+
+def glass_prepare(force=False):
+    """Take and blur a snapshot of the screen. Call it just before the island window is shown."""
+    if style() != 'glass':
+        return False
+    if not force and _glass['surf'] is not None and time.monotonic() - _glass['at'] < .6:
+        return True
+    try:
+        import io
+        import subprocess
+        out = json.loads(subprocess.check_output(['niri', 'msg', '--json', 'focused-output'], timeout=2).decode())
+        name, lw = out.get('name'), float(out['logical']['width'])
+        lh = float(out['logical']['height'])
+        png = subprocess.check_output(['grim', '-o', name, '-s', '0.10', '-'], timeout=3, stderr=subprocess.DEVNULL)
+        small = cairo.ImageSurface.create_from_png(io.BytesIO(png))
+    except Exception:
+        return False
+    w, h = small.get_width(), small.get_height()
+    # blur: shrink hard (area average) then let bilinear scaling smooth it back up
+    bw, bh = max(8, w // 3), max(6, h // 3)
+    blur = cairo.ImageSurface(cairo.FORMAT_ARGB32, bw, bh)
+    bc = cairo.Context(blur)
+    bc.scale(bw / w, bh / h)
+    p = cairo.SurfacePattern(small)
+    p.set_filter(cairo.FILTER_BEST)
+    bc.set_source(p)
+    bc.paint()
+    blur.flush()
+    d = bytes(blur.get_data())
+    st = blur.get_stride()
+    tot = 0.0
+    for i in range(0, bh * st, 4 * 3):
+        tot += (d[i + 2] * .3 + d[i + 1] * .59 + d[i] * .11) / 255
+    _glass.update(surf=blur, sx=lw / bw, sy=lh / bh, lw=lw, lh=lh, lum=tot / max(1, bh * st // 12), at=time.monotonic())
+    return True
+
+
+def _backdrop_lum(x1, y1, x2, y2, M):
+    """Average brightness (0..1) of the blurred snapshot under a user-space box, sampled on a coarse grid."""
+    surf = _glass['surf']
+    if surf is None:
+        return .3
+    d = surf.get_data()
+    st, bw, bh = surf.get_stride(), surf.get_width(), surf.get_height()
+    tot, n = 0.0, 0
+    for fx in (.15, .5, .85):
+        for fy in (.15, .5, .85):
+            px, py = M.transform_point(x1 + (x2 - x1) * fx, y1 + (y2 - y1) * fy)
+            ix = int(clamp((px + _glass['ox']) / _glass['sx'], 0, bw - 1))
+            iy = int(clamp((py + _glass['oy']) / _glass['sy'], 0, bh - 1))
+            o = iy * st + ix * 4
+            tot += (d[o + 2] * .3 + d[o + 1] * .59 + d[o] * .11) / 255
+            n += 1
+    return tot / max(1, n)
+
+
+def panel_fill(cr, black=(.016, .016, .022), rim=.07):
+    """Fill and rim the CURRENT PATH as an island: black, or liquid glass when the style says so.
+
+    Replaces the usual "set_source_rgb(black); fill_preserve(); set_source_rgba(1,1,1,.07); stroke()" and leaves no path.
+    """
+    if style() != 'glass' or _glass['surf'] is None:
+        cr.set_source_rgb(*black)
+        cr.fill_preserve()
+        cr.set_source_rgba(1, 1, 1, rim)
+        cr.set_line_width(1)
+        cr.stroke()
+        return
+    x1, y1, x2, y2 = cr.path_extents()
+    w, h = max(1.0, x2 - x1), max(1.0, y2 - y1)
+    M = cr.get_matrix()
+    lum = _backdrop_lum(x1, y1, x2, y2, M)
+    cr.save()
+    cr.clip_preserve()
+    # 1. the blurred backdrop, in device space so it lines up with the screen
+    cr.save()
+    cr.set_matrix(cairo.Matrix())
+    cr.translate(-_glass['ox'], -_glass['oy'])
+    cr.scale(_glass['sx'], _glass['sy'])
+    pat = cairo.SurfacePattern(_glass['surf'])
+    pat.set_filter(cairo.FILTER_BILINEAR)
+    pat.set_extend(cairo.EXTEND_PAD)
+    cr.set_source(pat)
+    cr.paint()
+    cr.restore()
+    # 2. tint: darker over a bright backdrop so white text stays readable
+    tint = clamp(.30 + .42 * lum, .30, .66)
+    cr.set_source_rgba(.045, .055, .09, tint)
+    cr.paint()
+    # 3. soft white wash, strongest at the top, like light caught in the glass
+    wash = cairo.LinearGradient(0, y1, 0, y2)
+    wash.add_color_stop_rgba(0, 1, 1, 1, .16)
+    wash.add_color_stop_rgba(.45, 1, 1, 1, .035)
+    wash.add_color_stop_rgba(1, 1, 1, 1, .07)
+    cr.set_source(wash)
+    cr.paint()
+    # 4. specular bloom near the top-left corner
+    bloom = cairo.RadialGradient(x1 + w * .18, y1 + h * .06, 0, x1 + w * .18, y1 + h * .06, max(w, h) * .55)
+    bloom.add_color_stop_rgba(0, 1, 1, 1, .20)
+    bloom.add_color_stop_rgba(1, 1, 1, 1, 0)
+    cr.set_source(bloom)
+    cr.paint()
+    # 5. inner glow along the rim (half of this stroke falls outside the clip)
+    cr.set_line_width(7)
+    cr.set_source_rgba(1, 1, 1, .075)
+    cr.stroke_preserve()
+    cr.restore()
+    # 6. the bright rim itself: bright top-left, fading, a faint return at the bottom-right
+    rimg = cairo.LinearGradient(x1, y1, x2, y2)
+    rimg.add_color_stop_rgba(0, 1, 1, 1, .70)
+    rimg.add_color_stop_rgba(.35, 1, 1, 1, .16)
+    rimg.add_color_stop_rgba(.7, 1, 1, 1, .10)
+    rimg.add_color_stop_rgba(1, 1, 1, 1, .34)
+    cr.set_source(rimg)
+    cr.set_line_width(1.2)
+    cr.stroke_preserve()
+    cr.set_source_rgba(0, 0, 0, .25)       # hairline outside so the glass edge holds on bright wallpapers
+    cr.set_line_width(.5)
+    cr.stroke()
+
+
+def glass_flat(cr, tint=.62):
+    """Liquid glass without a backdrop snapshot, for cards that move around (notifications): a translucent dark
+    body, a soft white wash and a bright rim. Fills the current path and leaves it for the caller's own rim."""
+    x1, y1, x2, y2 = cr.path_extents()
+    w, h = max(1.0, x2 - x1), max(1.0, y2 - y1)
+    cr.save()
+    cr.clip_preserve()
+    cr.set_source_rgba(.045, .055, .09, tint)
+    cr.paint()
+    wash = cairo.LinearGradient(0, y1, 0, y2)
+    wash.add_color_stop_rgba(0, 1, 1, 1, .17)
+    wash.add_color_stop_rgba(.5, 1, 1, 1, .04)
+    wash.add_color_stop_rgba(1, 1, 1, 1, .08)
+    cr.set_source(wash)
+    cr.paint()
+    bloom = cairo.RadialGradient(x1 + w * .15, y1 + h * .08, 0, x1 + w * .15, y1 + h * .08, max(w, h) * .6)
+    bloom.add_color_stop_rgba(0, 1, 1, 1, .20)
+    bloom.add_color_stop_rgba(1, 1, 1, 1, 0)
+    cr.set_source(bloom)
+    cr.paint()
+    cr.set_line_width(6)
+    cr.set_source_rgba(1, 1, 1, .06)
+    cr.stroke_preserve()
+    cr.restore()
+    rim = cairo.LinearGradient(x1, y1, x2, y2)
+    rim.add_color_stop_rgba(0, 1, 1, 1, .70)
+    rim.add_color_stop_rgba(.4, 1, 1, 1, .16)
+    rim.add_color_stop_rgba(.7, 1, 1, 1, .10)
+    rim.add_color_stop_rgba(1, 1, 1, 1, .34)
+    cr.set_source(rim)
+    cr.set_line_width(1.1)
+    cr.stroke_preserve()

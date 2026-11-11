@@ -32,7 +32,7 @@ def find_marker(rgb, min_run=3, vchecks=(2, 4)):
     pattern = px * min_run
     cmd = ['grim'] + (['-o', name] if name else []) + ['-']
     try:
-        png = subprocess.check_output(cmd, timeout=3, stderr=subprocess.DEVNULL)
+        png = subprocess.check_output(cmd, timeout=10, stderr=subprocess.DEVNULL)
         surf = cairo.ImageSurface.create_from_png(io.BytesIO(png))
     except (OSError, subprocess.SubprocessError, cairo.Error):
         return None

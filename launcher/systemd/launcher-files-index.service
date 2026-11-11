@@ -1,0 +1,8 @@
+[Unit]
+Description=Rebuild the launcher's file index
+
+[Service]
+Type=oneshot
+Nice=15
+IOSchedulingClass=idle
+ExecStart=/usr/bin/python3 %h/.local/share/codex-iris-launcher/files/launcher_files.py index

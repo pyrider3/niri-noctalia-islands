@@ -1,0 +1,44 @@
+--- a/source/modules/iris/palette/IrisPalette.qml
++++ b/source/modules/iris/palette/IrisPalette.qml
+@@ -76,7 +76,7 @@
+         const prefix = Config.options?.search?.prefix ?? ({})
+         const q = root.settled
+         return q.trim().length > 0 && ![prefix.clipboard ?? ";", prefix.emojis ?? ":", prefix.math ?? "=", prefix.shellCommand ?? "$",
+-            prefix.webSearch ?? "?", prefix.action ?? "/", prefix.app ?? ">"].some(key => String(key).length > 0 && q.startsWith(key))
++            prefix.webSearch ?? "?", prefix.action ?? "/", prefix.app ?? ">", prefix.file ?? ".", prefix.window ?? "@"].some(key => String(key).length > 0 && q.startsWith(key))
+     }
+     function rowOf(entry: var): var {
+         const opens = entry.kind === "setting" || entry.kind === "section"
+@@ -254,6 +254,14 @@
+         } else if (backward) {
+             root.disarmPointerSelection()
+             root.moveSelection(-1)
++        } else if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && (event.modifiers & Qt.ControlModifier)
++                   && root.visibleResults[root.selectedIndex]?.filePath) {
++            LauncherExtra.openFolderOf(root.visibleResults[root.selectedIndex].filePath)      // Ctrl+Enter: reveal in folder
++            GlobalStates.searchOpen = false
++        } else if (event.key === Qt.Key_C && (event.modifiers & Qt.ControlModifier) && (event.modifiers & Qt.ShiftModifier)
++                   && root.visibleResults[root.selectedIndex]?.filePath) {
++            Quickshell.clipboardText = root.visibleResults[root.selectedIndex].filePath         // Ctrl+Shift+C: copy path
++            GlobalStates.searchOpen = false
+         } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+             root.executeSelected()
+         } else if (root.clipboardMode && event.key === Qt.Key_Delete) {
+@@ -339,6 +347,8 @@
+                 if (type === Translation.tr("Math")) return Translation.tr("Calculator")
+                 if (type === Translation.tr("Command")) return Translation.tr("Run command")
+                 if (type === Translation.tr("Web")) return Translation.tr("Search the web")
++                if (type === Translation.tr("Window")) return "窗口"
++                if (type === Translation.tr("Clipboard")) return "剪贴板历史"
+                 return type.length > 0 ? type : Translation.tr("Other")
+             }
+             function sectionAt(index: int): string {
+@@ -812,7 +822,7 @@
+                                     IrisText {
+                                         anchors.centerIn: parent
+                                         text: root.actionMode ? Translation.tr("Nothing by that name. Fewer letters find more.")
+-                                            : "没有匹配的应用。输入 > 查看全部应用，或 ? 关键词 搜索网页。"
++                                            : "没有匹配的应用。输入 > 查看全部应用，. 搜索文件，或 ? 关键词 搜索网页。"
+                                         color: IrisStyle.muted
+                                     }
+                                 }

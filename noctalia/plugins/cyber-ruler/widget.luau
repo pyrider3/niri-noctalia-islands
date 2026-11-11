@@ -28,6 +28,8 @@ local function configure()
     input.animate = noctalia.getConfig("animate") ~= false
     input.show_app = noctalia.getConfig("show_app") ~= false
     input.events = noctalia.getConfig("events") == true
+    input.event_ime = noctalia.getConfig("event_ime") ~= false
+    evInput.kbd = input.event_ime
     input.panel = noctalia.getConfig("panel") == true and (noctalia.getConfig("theme") or "classic") == "merged"
     input.island = noctalia.getConfig("island") == true and input.theme == "merged"
     evOn = input.events and input.theme ~= "merged"

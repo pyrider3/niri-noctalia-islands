@@ -38,5 +38,6 @@
   "settings.accent_mono": "Monochrome white",
   "settings.events": "Event pop-ups (mic, Wi-Fi, Bluetooth, DND, lock keys, power profile, layout: the ruler morphs into a black pill)",
   "settings.island": "Black island mode (merged theme: the focused pill is black at rest; off keeps the white pill. Event pop-ups always grow out of the pill as a black island)",
-  "settings.panel": "Click the focused pill to open an overview panel (merged theme: all workspaces and windows, click to jump, float / fullscreen / move / close)"
+  "settings.panel": "Click the focused pill to open an overview panel (merged theme: all workspaces and windows, click to jump, float / fullscreen / move / close)",
+  "settings.event_ime": "Input method / keyboard layout pop-up (needs event pop-ups on)"
 }

@@ -315,6 +315,7 @@ class Island:
         self.ca.snap(0)
         THEME.refresh(force=True)
         self.catcher.present()
+        gfx.glass_prepare()
         self.win.present()
         self._start_frames()
 
@@ -504,11 +505,8 @@ class Island:
             cr.paint_with_alpha(sa)
             cr.restore()
         rrect(cr, x, y, w, h, rad)
-        cr.set_source_rgb(*BLACK)
-        cr.fill_preserve()
-        cr.set_source_rgba(1, 1, 1, .07)
-        cr.set_line_width(1)
-        cr.stroke()
+        gfx.glass_origin(0, 0)
+        gfx.panel_fill(cr, BLACK, .07)
         ca = clamp(self.ca.x)
         if ca > .01:
             cr.save()

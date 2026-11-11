@@ -2,6 +2,7 @@
 -- SVG geometry follows the original MIT-licensed Face.qml; transparent eye cutouts.
 local F = {}
 local cache = {}
+local lastByKind, budgetAt, made = {}, 0, 0
 local dir = noctalia.pluginDataDir() .. "/faces"
 noctalia.mkdirAll(dir)
 local palette = {black="#F0F0F2",blue="#1686FA",cyan="#12B3A3",orange="#FF780A",violet="#8B50FA",green="#13BC78",red="#FF3E51",pink="#EE95C3",yellow="#FFAF38",brown="#A27952",magenta="#FF5EB1",white="#EEECE7",gray="#96999F",grey="#96999F",purple="#8B50FA",teal="#12B3A3"}
@@ -85,8 +86,15 @@ function F.path(mood, elapsed, shape, avatarColor)
     local arrival = animate and mood == "unread" and elapsed < 650
     local key = "avatar-v8-" .. shape .. "-" .. mood .. "-" .. string.sub(color, 2) .. "-" .. tostring(frame) .. (arrival and "-arrival" or "")
     local path = dir .. "/" .. key .. ".svg"
-    if cache[key] then return path end
-    if noctalia.fileExists(path) then cache[key]=true return path end
+    local kind = shape .. "-" .. mood .. "-" .. color
+    if cache[key] then lastByKind[kind] = path return path end
+    if noctalia.fileExists(path) then cache[key]=true lastByKind[kind] = path return path end
+    -- A cold cache means every animation frame is new. Generating them all at once starves the shell's script budget
+    -- (the widget gets disabled), so make at most a couple per tick and reuse the last frame for the rest.
+    local tickNow = noctalia.nowMs()
+    if tickNow - budgetAt > 20 then budgetAt = tickNow made = 0 end
+    if made >= 2 and lastByKind[kind] then return lastByKind[kind] end
+    made = made + 1
     local phase = frame / 1080
     local t = phase * period
     local gaze, breath, angle, hop = 0, 1, 0, 0
@@ -139,6 +147,7 @@ function F.path(mood, elapsed, shape, avatarColor)
     local svg = string.format('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 40 40"><defs><mask id="eyes"><rect width="40" height="40" fill="white"/>%s</mask></defs><g transform="translate(20 %.2f) rotate(%.2f) scale(%.3f) translate(-20 -20)" opacity="%.2f">%s</g></svg>',table.concat(eyes),20+hop,angle,breath,mood == "asleep" and .4 or 1,body)
     noctalia.writeFile(path, svg)
     cache[key] = true
+    lastByKind[kind] = path
     return path
 end
 return F

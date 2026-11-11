@@ -77,15 +77,17 @@ class Bus:
 
     def items(self):
         r = self.call(WATCHER[0], WATCHER[1], 'org.freedesktop.DBus.Properties', 'Get',
-                      GLib.Variant('(ss)', (WATCHER[0], 'RegisteredStatusNotifierItems')), '(v)')
+                      GLib.Variant('(ss)', (WATCHER[0], 'RegisteredStatusNotifierItems')), '(v)', timeout=1500)
+        if r is None:
+            return None                  # the shell did not answer (busy machine): "unknown", never "no icons"
         out = []
-        for entry in (r[0] if r else []):
+        for entry in r[0]:
             bus, _, path = str(entry).partition('/')
             out.append((bus, '/' + path))
         return out
 
-    def props(self, bus, path):
-        r = self.call(bus, path, 'org.freedesktop.DBus.Properties', 'GetAll', GLib.Variant('(s)', (SNI,)), '(a{sv})')
+    def props(self, bus, path, timeout=450):
+        r = self.call(bus, path, 'org.freedesktop.DBus.Properties', 'GetAll', GLib.Variant('(s)', (SNI,)), '(a{sv})', timeout=timeout)
         return r[0] if r else None
 
 
@@ -111,6 +113,45 @@ def pixbuf_surface(pb):
     return surf
 
 
+def find_chevron(rgb):
+    """Screen x (logical px) of the chevron: the centre of the biggest cluster of pixels of exactly the marker colour in
+    the bar strip. Unlike barpos.find_marker it does not care how the sub-pixel grid cuts the little triangle."""
+    import io
+    import subprocess
+    name, lw, _ = barpos.screen_info()
+    try:
+        png = subprocess.check_output(['grim'] + (['-o', name] if name else []) + ['-'], timeout=10, stderr=subprocess.DEVNULL)
+        surf = cairo.ImageSurface.create_from_png(io.BytesIO(png))
+    except (OSError, subprocess.SubprocessError, cairo.Error):
+        return None
+    w, stride = surf.get_width(), surf.get_stride()
+    scale = w / lw
+    data = bytes(surf.get_data())
+    px = bytes([rgb[2], rgb[1], rgb[0], 255])
+    xs = []
+    for y in range(0, int(70 * scale)):
+        row = data[y * stride:y * stride + w * 4]
+        at = row.find(px)
+        while at >= 0:
+            if at % 4 == 0:
+                xs.append(at // 4)
+            at = row.find(px, at + 1)
+    if len(xs) < 5:
+        return None
+    xs.sort()
+    clusters, cur = [], [xs[0]]
+    for x in xs[1:]:
+        if x - cur[-1] > 14 * scale:
+            clusters.append(cur)
+            cur = []
+        cur.append(x)
+    clusters.append(cur)
+    best = max(clusters, key=len)
+    if len(best) < 5:
+        return None
+    return (best[0] + best[-1]) / 2 / scale, lw
+
+
 class Island:
     def __init__(self, app):
         self.app = app
@@ -120,6 +161,8 @@ class Island:
         self.items = []
         self.icons = {}
         self.pages = []                    # menu pages: [{'title','rows','item'}]
+        self._refreshing = False
+        self._refresh_again = False
         self.menu_scroll = Spring(0, omega=20, zeta=.95)
         self.menu_t = 0.0
         self.sx = Spring(0, omega=17, zeta=.74)
@@ -239,10 +282,10 @@ class Island:
             try:
                 st = read_json(STATE / 'status.json')
                 mk, mx = st.get('marker'), st.get('marker_x')
-                if mk and mx is not None:
-                    r = barpos.find_marker(tuple(int(v) for v in mk), min_run=3)
+                if mk:
+                    r = find_chevron(tuple(int(v) for v in mk))
                     if r:
-                        res = r[0] - float(mx), r[2]
+                        res = r[0] - CHEV_X, r[1]          # capsule left edge = chevron centre - its offset
             except (OSError, ValueError, TypeError):
                 pass
             GLib.idle_add(self._located, res)
@@ -253,6 +296,8 @@ class Island:
         self.cap_t = time.monotonic()
         if res:
             self.cap_left, self.screen_w = res
+        elif self.cap_left is None:      # never found yet (slow machine?): try again soon instead of waiting 30 s
+            GLib.timeout_add_seconds(4, lambda: (self.locate() if not self.is_open else None) or False)
         return False
 
     def _relocate(self):
@@ -269,8 +314,6 @@ class Island:
         if self.is_open:
             return
         cx = self.chevron_x()          # located while closed (the open island would hide the marker)
-        live = set(self.dbus.items())    # one quick call: drop apps that already quit before drawing anything
-        self.items = [i for i in self.items if (i['bus'], i['path']) in live]
         self.is_open = True
         self.pages = []
         self.hover_key = None
@@ -284,11 +327,12 @@ class Island:
         LS.set_margin(self.win, LS.Edge.LEFT, 0)
         LS.set_margin(self.win, LS.Edge.TOP, 0)
         THEME.refresh(force=True)
+        gfx.glass_prepare()
         self.catcher.set_visible(True)
         self.catcher.present()
         self.win.present()
         self.start_frames()
-        GLib.timeout_add(1500, self._refresh_loop)
+        GLib.timeout_add(3000, self._refresh_loop)
 
     def close(self):
         if self.is_open:
@@ -302,19 +346,44 @@ class Island:
 
     # ----------------------------------------------------------------- data
     def refresh(self):
+        """Read every tray item. Only one read runs at a time: when apps answer slowly a new read every 1.5 s piled up
+        hundreds of threads (and gigabytes) before; now a request that arrives meanwhile just asks for one more round."""
+        if self._refreshing:
+            self._refresh_again = True
+            return
+        self._refreshing = True
+        self._refresh_again = False
+
         def work():
             items = []
-            for bus, path in self.dbus.items():
-                p = self.dbus.props(bus, path)
-                if not p:
-                    continue
-                ident = str(p.get('Id', ''))
-                if any(h in ident.lower() or h in str(p.get('Title', '')).lower() for h in HIDE_IDS):
-                    continue
-                items.append(dict(bus=bus, path=path, id=ident, title=self._pretty(str(p.get('Title') or ident or bus)),
-                                  status=str(p.get('Status', 'Active')), props=p))
-            GLib.idle_add(self._set_items, items)
+            try:
+                listed = self.dbus.items()
+                if listed is None:
+                    items = None         # keep what we have; the follow-up refresh will try again
+                    return
+                for bus, path in listed:
+                    p = self.dbus.props(bus, path, timeout=900)
+                    if not p:
+                        continue
+                    ident = str(p.get('Id', ''))
+                    if any(h in ident.lower() or h in str(p.get('Title', '')).lower() for h in HIDE_IDS):
+                        continue
+                    items.append(dict(bus=bus, path=path, id=ident, title=self._pretty(str(p.get('Title') or ident or bus)),
+                                      status=str(p.get('Status', 'Active')), props=p))
+            finally:
+                GLib.idle_add(self._refresh_done, items)
         threading.Thread(target=work, daemon=True).start()
+
+    def _refresh_done(self, items):
+        self._refreshing = False
+        if items is None:
+            self._refresh_again = True
+        else:
+            self._set_items(items)
+        if self._refresh_again:
+            self._refresh_again = False
+            GLib.timeout_add(900, lambda: self.refresh() or False)      # at most one follow-up, not a pile
+        return False
 
     @staticmethod
     def _pretty(name):
@@ -480,11 +549,8 @@ class Island:
         r = min(18, h / 2, w / 2)
         gfx.shadow(cr, x, y, w, h, r, 1.4, 8)
         rrect(cr, x, y, w, h, r)
-        cr.set_source_rgb(*BLACK)
-        cr.fill_preserve()
-        cr.set_source_rgba(1, 1, 1, .09)
-        cr.set_line_width(1)
-        cr.stroke()
+        gfx.glass_origin(0, 0)
+        gfx.panel_fill(cr, BLACK, .09)
         a = clamp(self.ca.x)
         if a > .02:
             cr.save()

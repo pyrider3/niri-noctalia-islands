@@ -1,0 +1,59 @@
+--- a/source/services/deferred/LauncherSearch.qml
++++ b/source/services/deferred/LauncherSearch.qml
+@@ -15,8 +15,56 @@
+         if (query.length === 0) { debounce.stop(); settledQuery = "" }
+         else debounce.restart()
+     }
++    // "." switches to file search: ".baogao" finds 报告.docx, ".config kdl" finds config files (see FileSearch)
++    readonly property string clipPrefix: Config.options?.search?.prefix?.clipboard ?? ";"
++    readonly property string winPrefix: Config.options?.search?.prefix?.window ?? "@"
++    readonly property string filePrefix: Config.options?.search?.prefix?.file ?? "."
++    onSettledQueryChanged: {
++        const t = settledQuery.trim()
++        if (t.startsWith(root.filePrefix)) FileSearch.query(t.slice(root.filePrefix.length))
++        else if (t.startsWith(root.clipPrefix)) LauncherExtra.query("clip", t.slice(root.clipPrefix.length))
++        else if (t.startsWith(root.winPrefix)) LauncherExtra.query("win", t.slice(root.winPrefix.length))
++    }
++    function fileIcon(f) {
++        if (f.isdir) return "folder"
++        const i = f.icon || ""
++        if (i.startsWith("image")) return "image"
++        if (i.startsWith("video")) return "movie"
++        if (i.startsWith("audio")) return "music_note"
++        if (i.includes("pdf")) return "picture_as_pdf"
++        if (i.includes("package") || i.includes("zip") || i.includes("archive") || i.includes("compress")) return "folder_zip"
++        if (i.includes("script") || i.includes("code") || i.includes("html") || i.includes("source")) return "code"
++        if (i.includes("spreadsheet")) return "table_chart"
++        if (i.includes("presentation")) return "slideshow"
++        return "description"
++    }
+     property var results: {
+         const raw = settledQuery.trim()
++        if (raw.startsWith(root.filePrefix)) {
++            return FileSearch.results.map(f => ({
++                id: f.path, name: f.name, comment: f.dir, iconName: root.fileIcon(f),
++                iconType: LauncherSearchResult.IconType.Material,
++                type: f.isdir ? "文件夹" : "文件", verb: "打开 · Ctrl+↵ 所在文件夹",
++                filePath: f.path,
++                execute: () => FileSearch.open(f.path)
++            }))
++        }
++        if (raw.startsWith(root.clipPrefix) && LauncherExtra.resultsMode === "clip") {
++            return LauncherExtra.results.map(c => ({
++                id: "clip:" + c.ts, name: c.name, comment: LauncherExtra.ago(c.ts) + " · " + c.chars + " 字" + (c.lines > 1 ? " · " + c.lines + " 行" : ""),
++                iconName: "content_paste", iconType: LauncherSearchResult.IconType.Material,
++                type: "剪贴板", verb: "复制",
++                execute: () => { Quickshell.clipboardText = c.text }
++            }))
++        }
++        if (raw.startsWith(root.winPrefix) && LauncherExtra.resultsMode === "win") {
++            return LauncherExtra.results.map(w => ({
++                id: "win:" + w.id, name: w.title, comment: w.app + " · 工作区 " + w.ws + (w.focused ? " · 当前" : ""),
++                iconName: AppSearch.guessIcon(w.app), iconType: LauncherSearchResult.IconType.System,
++                type: "窗口", verb: "切换",
++                execute: () => { LauncherExtra.focusWindow(w.id); LauncherExtra.use("win:" + w.app) }
++            }))
++        }
+         if (raw.startsWith("?")) {
+             const words = raw.slice(1).trim()
+             const engine = Config.options?.search?.engineBaseUrl || "https://www.google.com/search?q="

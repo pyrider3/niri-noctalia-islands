@@ -338,8 +338,11 @@ class Center:
             return
         gfx.shadow(cr, px, py, PANEL_W, ph, RADIUS, 2.2, dy=10)
         rrect(cr, px, py, PANEL_W, ph, RADIUS)
-        cr.set_source_rgba(*mix(th.bg, th.text, .045), .985)
-        cr.fill_preserve()
+        if gfx.style() == 'glass':
+            gfx.glass_flat(cr, .70)
+        else:
+            cr.set_source_rgba(*mix(th.bg, th.text, .045), .985)
+            cr.fill_preserve()
         cr.set_source_rgba(*th.text, .10)
         cr.set_line_width(1)
         cr.stroke()
@@ -470,8 +473,11 @@ class Center:
         cr.push_group()
         # card body (squashes as it collapses)
         rrect(cr, cx, cy, CARD_W, h, 20)
-        cr.set_source_rgba(*mix(th.card, th.card_hi, hv), 1)
-        cr.fill_preserve()
+        if gfx.style() == 'glass':
+            gfx.glass_flat(cr, .55)
+        else:
+            cr.set_source_rgba(*mix(th.card, th.card_hi, hv), 1)
+            cr.fill_preserve()
         crit = n.urgency == CRITICAL
         cr.set_source_rgba(*(th.danger if crit else th.text), .38 if crit else .08 + .06 * hv)
         cr.set_line_width(1)

@@ -21,6 +21,7 @@ A set of black "dynamic island" style components for **niri + Noctalia**: notifi
 | `noctalia/plugins/tray-island` | 托盘岛：栏上 `▾ 中`（和 Noctalia 自带托盘同样大小），点 `▾` 从箭头里长出托盘面板；左键激活、右键在岛里显示应用自己的菜单（可滚动），`中` 是自己画的输入法指示 |
 | `noctalia/plugins/center-hub` | 早期的中间枢纽实验，已被 cyber-ruler 的事件提示取代，留作参考 |
 | `noctalia/plugins/grok-bot` | Grok Bot 面板的改版（原作者见下） |
+| `launcher/` | 启动器扩展：`.` 文件搜索、`;` 剪贴板历史（拼音）、`@` 窗口切换、拼音搜索中文应用、常用优先排序（补丁 + 脚本，见 `launcher/README.md`） |
 | `desk-settings/` | 同风格的设置应用：壁纸、Wallpaper Engine、niri 外观、栏与 Noctalia、各组件设置，改动可撤销 |
 | `niri/` | 脱敏后的 `config.kdl` 示例、模糊 / 浮动模式的 include 和脚本 |
 | `noctalia/settings.example.toml` | 精简的 Noctalia 设置示例（不含壁纸、位置、账号） |

@@ -355,8 +355,11 @@ class CapsuleLayer:
         cr.push_group()
         gfx.shadow(cr, x0, y0, w, h, 22, 1.3)
         rrect(cr, x0, y0, w, h, 22)
-        cr.set_source_rgba(*mix(th.bg, th.text, .07), .98)
-        cr.fill_preserve()
+        if gfx.style() == 'glass':
+            gfx.glass_flat(cr)
+        else:
+            cr.set_source_rgba(*mix(th.bg, th.text, .07), .98)
+            cr.fill_preserve()
         cr.set_source_rgba(*(th.danger if crit else th.text), .40 if crit else .12)
         cr.set_line_width(1)
         cr.stroke()
