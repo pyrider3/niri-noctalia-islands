@@ -21,7 +21,7 @@ local function stepHover(now)
     end
     if math.abs(hover.x - t) < 0.004 and math.abs(hover.v) < 0.02 then hover.x, hover.v = t, 0 end
 end
-function onHover(value) hoverOn = (value == true or value == "true") end
+function onHover(value) end   -- hover status line removed (hoverOn stays false, so the strip never expands)
 local function statusLine(s)
     if not s.running then return "未运行" end
     local parts = {}

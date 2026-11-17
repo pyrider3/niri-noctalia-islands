@@ -129,7 +129,9 @@ def find_chevron(rgb):
     data = bytes(surf.get_data())
     px = bytes([rgb[2], rgb[1], rgb[0], 255])
     xs = []
-    for y in range(0, int(70 * scale)):
+    # only the bar strip: window content under the bar can contain the same near-white colour (a light page would
+    # win the 'biggest cluster' vote and the island would open on the wrong side of the screen)
+    for y in range(int(8 * scale), int(30 * scale)):
         row = data[y * stride:y * stride + w * 4]
         at = row.find(px)
         while at >= 0:
@@ -146,6 +148,10 @@ def find_chevron(rgb):
             cur = []
         cur.append(x)
     clusters.append(cur)
+    # the chevron is a small triangle: reject anything wider than ~12px (text, white UI, page content)
+    clusters = [c for c in clusters if (c[-1] - c[0]) <= 12 * scale]
+    if not clusters:
+        return None
     best = max(clusters, key=len)
     if len(best) < 5:
         return None
